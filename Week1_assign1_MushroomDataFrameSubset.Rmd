@@ -1,0 +1,79 @@
+---
+title: "Week1_assign1_MushroomDataFrameSubset"
+author: "Jayanth0572"
+date: "8/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import Mushroom dataset from the web
+
+```{r}
+
+# import file from web
+input.file <- read.table(url("https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data"), header = FALSE, sep = ",")
+
+#These are column names for reference
+#colnames(input.file) <- c("class", "cap-shape","cap-surface","cap-color","bruises","odor","gill-attachment","gill-spacing","gill-size","gill-color","stalk-shape","stalk-root","stalk-surface-above-ring","stalk-surface-below-ring","stalk-color-above-ring","stalk-color-below-ring","veil-type","veil-color","ring-number","ring-type","spore-print-color","population","habitat")
+
+#create data frames for abbreviation references
+classification.values <- data.frame("id" = c("e","p"), "description" = c("edible", "poisonous"))
+capShape.values <- data.frame("id" = c("b","c","x","f","k","s"), "description" = c("bell","conical","convex","flat","knobbed","sunken"))
+capColor.values <- data.frame("id" = c("n","b","c","g","r","p","u,","e","w","y"), "description" = c("brown","buff","cinnamon","gray","green","pink","purple","red","white","yellow"))
+odor.values <- data.frame("id" = c("a","l","c","y","f","m","n","p","s"), "description" = c("almond","anise","creosote","fishy","foul","musty","none","pungent","spicy"))
+population.values <- data.frame("id" = c("a","c","n","s","v","y"), "description" = c("abundant","clustered","numerous","scattered","several","solitary"))
+habitat.values <- data.frame("id" = c("g","l","m","p","u","w","d"), "description" = c("grasses","leaves","meadows","paths","urban","waste","woods"))
+
+# attribute count
+dim(input.file)
+
+#display top 10 rows
+input.file[1:10,]
+ 
+```
+
+
+## Create data frame using subset of the columns from the input file
+
+```{r}
+
+#create data frame
+mushroom.df <- data.frame(input.file$V1,input.file$V2,input.file$V4,input.file$V6,input.file$V22,input.file$V23)
+
+#rename columns
+colnames(mushroom.df) <- c("classification","capShape","capColor","odor","population","habitat")
+
+#substitute values in the current data frame from another dataframe
+mushroom.df$classification <- classification.values$description[match(tolower(mushroom.df$classification), tolower(classification.values$id))]
+mushroom.df$capShape <- capShape.values$description[match(tolower(mushroom.df$capShape), tolower(capShape.values$id))]
+mushroom.df$capColor <- capColor.values$description[match(tolower(mushroom.df$capColor), tolower(capColor.values$id))]
+mushroom.df$odor <- odor.values$description[match(tolower(mushroom.df$odor), tolower(odor.values$id))]
+mushroom.df$population <- population.values$description[match(tolower(mushroom.df$population), tolower(population.values$id))]
+mushroom.df$habitat <- habitat.values$description[match(tolower(mushroom.df$habitat), tolower(habitat.values$id))]
+
+#display top 10 rows
+mushroom.df[1:10,]
+
+
+```
+
+
+## using subset on the prepared data frame to find the habitat's of edible mushrooms with numerous population
+
+```{r}
+
+result1 <- subset(mushroom.df, classification == "edible" & population == "numerous", select = c(classification, habitat, capColor, population))
+
+
+# attribute count
+dim(result1)
+
+#summary the of the edible mushrooms with numerous population
+summary(result1)
+
+```
+
+
