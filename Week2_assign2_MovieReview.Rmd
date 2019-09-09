@@ -1,0 +1,118 @@
+---
+title: "Week2_assign2_MoviewReview"
+author: "Jayanth and Sarat"
+date: "9/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Working with Text file and DB
+
+### Step1:
+- Reviews were collected using the Survey Mokney website, but text file was created manually using the data from this site as file extraction requires a subscription.
+- The Source file was formatted as a tab Delimited file with no header data. File "MovieReviews.txt" is available at "https://github.com/jayanth0572/R_practice_and_assignments/MovieReviews.txt"
+
+### Step2:
+- postgres was installed on Windows machine and Database was created.
+- Table named "movie_reviews" was created under Public schema to import data from the file
+- File was imported using Copy command
+- SQL file is available at "https://github.com/jayanth0572/R_practice_and_assignments/movie_review.sql"
+
+> Create table statement
+`CREATE TABLE public.movie_reviews
+(
+    "UserName" character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    "Movie" character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    "StarRating" character varying(5) COLLATE pg_catalog."default",
+    "Review" character varying(250) COLLATE pg_catalog."default",
+    "ReviewDate" date NOT NULL
+)`
+
+> Statement to import data into DB table
+`COPY public.movie_reviews FROM 'C:\Users\Public\Downloads\MovieReviews.txt';`
+
+
+
+# Loading the data from DB into R Dataframe
+
+### Step1:
+####Install packages
+- for Database Interface between R and PostgreSQL installing package ("RPostgreSQL")
+- for data manipulation functinos installing package "dplyr". ALternatively we can install whole "tidyverse" package.
+```{r}
+##install.packages("RPostgreSQL")
+##install.packages("dplyr")
+```
+ 
+
+### Step2:
+#### Establishing connection with DB server using the "PostgreSQL" driver
+- First Driver object is created for reuse. We can also skip this step and use the dbDriver function directly in the dbConnect function.
+- Next Connection to DB is established by using "dbConnect" function. This requires database details as well as login credentials.
+```{r include=FALSE}
+pwd <- "Removedtheactualpassword"
+```
+
+```{r}
+
+library("RPostgreSQL")
+
+#create driver object
+drv <- dbDriver("PostgreSQL")
+
+#create connection object
+MovieReview_db <- dbConnect(drv,
+                 user="postgres", 
+                 password=pwd,
+                 host="localhost", 
+                 port=5432, 
+                 dbname="assignments")
+
+# list all the tables in "MovieReview_db" object
+dbListTables(MovieReview_db)
+
+```
+
+
+### Step3:
+#### Load Data to Dataframe and perform some analysis
+- "dbGetQuery" fucntion is used to get data from DB
+- Empty values in StarRating column were replaced with 0
+- Calculated the avg. movie rating for each of the movies. "magritter" library was used fo this purpose.
+```{r}
+
+library(dplyr)
+library(magrittr)
+
+# query the database and load to a dataframe
+MovieReview_df <- dbGetQuery(MovieReview_db, "SELECT * from public.movie_reviews;")
+
+#Display Daframe values
+#MovieReview_df
+
+#replacing the empty columns in StarRating column with 0 for processing purposes.
+MovieReview_df$star_rating[MovieReview_df$star_rating == ""] <- "0"
+
+#Calculating the Average Movie rating for each movie. Pipe operator was used to make use of GroupBy and summarise functions.
+AvgOfMovieReview <- MovieReview_df %>% group_by(movie) %>% summarise(star_rating = mean(as.numeric(star_rating)))
+
+#Display Result
+AvgOfMovieReview
+
+```
+
+
+### Step4:
+- Disconnect from DB
+```{r}
+
+# disconnect from database
+dbDisconnect(MovieReview_db)
+
+```
+
+
