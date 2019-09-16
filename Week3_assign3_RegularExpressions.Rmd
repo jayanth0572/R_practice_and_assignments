@@ -1,0 +1,184 @@
+---
+title: "Week3_assign3_RegularExpressions"
+author: "Jayanth0572"
+date: "9/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 3. Copy the introductory example. The vector name stores the extracted names.
+> name
+[1] "Moe Szyslak" "Burns, C. Montgomery" "Rev. Timothy Lovejoy"
+[4] "Ned Flanders" "Simpson, Homer" "Dr. Julius Hibbert"
+
+- The task for this week requires "stringr" library
+- input string as well as the regular expression was copied from text book to get the name vector
+
+```{r}
+library(stringr)
+input_string <- "555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5553642Dr. Julius Hibbert"
+
+name <- unlist(str_extract_all(input_string, "[[:alpha:].,[:space:]]{2,}"))
+
+name
+
+```
+
+### (a) Use the tools of this chapter to rearrange the vector so that all elements conform to the standard first_name last_name.
+
+#### For this task I am going to remove titles and make use of regular expressions within if-else statement placed in while loop
+#### steps:
+- Titles are identified
+- Titles were removed from the names and values were assigned to a new vector "names_standard"
+- While loop created with condition max value matching no. of elements in "names_standard" vector
+- New vector "names_filtered" was created to store only the names. This vector will be refrenced in code, which will help avoid repetitive and complex coding.
+- Within while loop, if-else statements were used to identify different formats of the names, then "names_filtered" was referenced to assign proper value
+```{r}
+name_titles <- c("Rev.","Dr.")
+names_wo_title <- str_replace(name, pattern = name_titles, replacement = "")
+names_standard <- names_wo_title
+
+i <- 1
+while(i <= length(names_standard))
+{
+names_filtered <- unlist(str_extract_all(names_standard[i], "[[:ALPHA:]]+[[:SPACE:]]*?[[:PUNCT:]]*"))
+# Handling with names having comma
+if(str_detect(names_standard[i], ",") == TRUE)
+  {
+  if(length(names_filtered) > 2)
+    {
+      names_standard[i] <- str_c(names_filtered[length(names_filtered)], " ", str_replace(names_filtered[1],",", ""))
+    }
+  else
+    {
+      names_standard[i] <- str_c(names_filtered[length(names_filtered)], " ", str_replace(names_filtered[1],",", ""))
+    }
+  }
+# Handling with the names in regular format
+else
+  {
+  if(length(names_filtered) > 2)
+    {
+      names_standard[i] <- str_c(names_filtered[1], " ", names_filtered[length(names_filtered)])
+    }
+  else if(length(names_filtered) == 1)
+    {
+      names_standard[i] <- names_filtered[length(names_filtered)]
+    }
+  else
+    {
+      names_standard[i] <- str_c(names_filtered[1], " ", names_filtered[length(names_filtered)])
+    }
+  }
+i = i+1
+}
+# End of while loop
+
+#print names
+names_standard
+```
+
+### (b) Construct a logical vector indicating whether a character has a title (i.e., Rev. and Dr.).
+#### For this task I am going to create a logical vector using "str_detect" function
+#### steps:
+- Creating a logical vector using "str_detect" function.
+- Vector "name_titles" with titles created at the beginning was referenced to match them with the actual "name" vector
+- Result True indicates the name has Title
+
+```{r}
+names_have_title <- str_detect(name, name_titles)
+names_have_title
+```
+
+### (c) Construct a logical vector indicating whether a character has a second name.
+#### For this task I am going to create a logical vector using "str_detect" function
+#### steps:
+- Creating a logical vector using "str_detect" function.
+- Vector "name_titles" with titles created at the beginning was referenced to match them with the actual "name" vector
+- Result True indicates the name has Title
+
+```{r}
+names_wo_title
+names_with_spacecount <- str_count(str_trim(names_wo_title), " ")
+names_with_spacecount
+names_have_secondname <- str_detect(names_with_spacecount, "1", negate = TRUE)
+names_have_secondname
+
+```
+
+
+# 4. Describe the types of strings that conform to the following regular expressions and construct an example that is matched by the regular expression.
+
+
+```{r}
+
+sample_string <- "<Ton> of a Mango's costs say 2300$. That is cool. </item code: 2323/34/124556/2/2/4>. </Ton> Data is taken from Ton> txt file .txt"
+
+```
+### (a) [0-9]+\\$ 
+> This expression is using digits and dollar sign. [0-9]+ matches the number sequence. And $ was escaped, so it will be treated as a character.
+The result from above string will be : "2300$"
+```{r}
+a <- str_extract_all(sample_string, "[0-9]+\\$")
+a
+```
+
+### (b) \\b[a-z]{1,4}\\b
+> This expression is using lowercase characters and a symbol for empty string representation. [a-z]{1,4} will match lowercase characters to
+a maximum of 4 attempts in a word. \\b will restrict the match from previous expression to words with only lowercase characters of length <=4. The result from
+above string will be : "of"   "a"    "s"    "say"  "is"   "cool" "item" "code" "is"   "from" "txt"  "file" "txt"
+```{r}
+b <- str_extract_all(sample_string, "\\b[a-z]{1,4}\\b")
+b
+```
+
+### (c) .*?\\.txt$
+> This expression is using quatifiers (*,? and dollar sign), punctuation(.), escape character and literal characters "txt".
+#.*? matches any character except newline zero or more times. Soo there will be empty string result for each characer from our example string. \\.txt$ means
+literal match of string ending with .txt. The result from above string will be : "<Ton> of a Mango's costs say 2300$. That is cool. </item code: 2323/34/124556/2/2/4>. </Ton> Data is taken from Ton> txt file .txt"
+```{r}
+c <- str_extract_all(sample_string, ".*?\\.txt$")
+c
+```
+
+### (d) \\d{2}/\\d{2}/\\d{4}
+> This expression is using digits symbol with the digit to be matched no. of times in curly braces,puncutaion(/) and escape characters.
+d{2} and d{4} matches digits(0-9) 2 and 4 times respectively. the result from above string will be : "23/34/1245"
+```{r}
+d <- str_extract_all(sample_string, "\\d{2}/\\d{2}/\\d{4}")
+d
+```
+
+### (e) <(.+?)>.+?</\\1>
+> This expression is using quatifiers (+,? and dollar sign), puncutaion(/,<), escape character and backreference. <(.+?)> will produce the backreferene
+enclosed in angular braces. .+?</ will extend the match to the first character combinatin >/. \\1> will extend the match to the first occurance of Backreference in
+combination of >. The result of this expression will be : "<Ton> of a Mango's costs say 2300$. That is cool. </item code: 2323/34/124556/2/2/4>. </Ton>"
+```{r}
+e <- str_extract_all(sample_string, "<(.+?)>.+?</\\1>")
+e
+```
+
+
+# 9. The following code hides a secret message. Crack it with R and regular expressions.
+### Hint: Some of the characters are more revealing than others! The code snippet is also available in the materials at www.r-datacollection.com.
+> clcopCow1zmstc0d87wnkig7OvdicpNuggvhryn92Gjuwczi8hqrfpRxs5Aj5dwpn0Tanwo
+Uwisdij7Lj8kpf03AT5Idr3coc0bt7yczjatOaootj55t3Nj3ne6c4Sfek.r1w1YwwojigO
+d6vrfUrbz2.2bkAnbhzgv4R9i05zEcrop.wAgnb.SqoU65fPa1otfb7wEm24k6t3sR9zqe5
+fy89n6Nd5t9kc4fE905gmc4Rgxo5nhDk!gr
+
+#### In this task, I am making use of str_replace_all and str_extract_all functions.
+- I've noticed there are Uppercase letters and decided to start working with it. The result was a vector with the message, but the message was not displayed as a string.
+So, I've made use of str_replace_all function.
+THe result is "c(\"CONGRATULATIONS.YOU.ARE.A.SUPERNERD!\")"
+
+```{r}
+input_string <-
+"clcopCow1zmstc0d87wnkig7OvdicpNuggvhryn92Gjuwczi8hqrfpRxs5Aj5dwpn0TanwoUwisdij7Lj8kpf03AT5Idr3coc0bt7yczjatOaootj55t3Nj3ne6c4Sfek.r1w1YwwojigOd6vrfUrbz2.2bkAnbhzgv4R9i05zEcrop.wAgnb.SqoU65fPa1otfb7wEm24k6t3sR9zqe5fy89n6Nd5t9kc4fE905gmc4Rgxo5nhDk!gr"
+
+secret_message <- str_replace_all(str_extract_all(input_string, "[[:UPPER:][:PUNCT:]]"), "\", \"", "")
+
+secret_message
+```
