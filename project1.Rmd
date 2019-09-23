@@ -1,0 +1,144 @@
+---
+title: "Project1"
+author: "Jayanth and Sarat"
+date: "September 21, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Stpe1:
+> Reading file and creating two data frames.
+
+- "readLines" function is used to read the data from input file. In this step the line with hyphen is removed.
+- The records were split based on new line to create a vector
+- Next, two data frames were created and data from vector was pulled into data frames. s we can notice, thare are rows with different columns. So we are creating unique dataframe. 
+
+
+```{r}
+
+library("stringr")
+
+rawfile <- trimws(str_replace_all(readLines("D:/CUNYSPS-MSDS/Project1/tournamentinfo.txt"),"-----------------------------------------------------------------------------------------",""))
+
+
+input_vector <- trimws(unlist(strsplit(rawfile, "\n")))
+
+input_vector
+
+# Creating unique Dataframe for rowtpe 1
+i <- 3
+
+df_row1<-data.frame(matrix(ncol = 10, nrow = 0))
+
+names(df_row1)<-c("Pair_Num", "Player_Name", "Total","Round1","Round2","Round3","Round4","Round5","Round6","Round7")
+
+while(i <= length(input_vector))
+{
+    vec <- unlist(as.vector(strsplit(input_vector[i], "[|]")))
+    
+    df_row1 <- rbind(df_row1,data.frame(Pair_Num= trimws(vec[1]), Player_Name=trimws(vec[2]), Total=trimws(vec[3]),Round1=as.numeric(as.character(str_extract(vec[4],"[0-9]+"))),Round2=as.numeric(as.character(str_extract(vec[5],"[0-9]+"))),Round3=as.numeric(as.character(str_extract(vec[6],"[0-9]+"))),Round4=as.numeric(as.character(str_extract(vec[7],"[0-9]+"))),Round5=as.numeric(as.character(str_extract(vec[8],"[0-9]+"))),Round6=as.numeric(as.character(str_extract(vec[9],"[0-9]+"))),Round7=as.numeric(as.character(str_extract(vec[10],"[0-9]+")))))
+
+    i<-i+2
+}
+df_row1
+
+
+# Creating unique Dataframe for rowtpe 2
+j <- 4
+
+df_row2<-data.frame(matrix(ncol = 12, nrow = 0))
+names(df_row2)<-c("state", "USCF_ID","Rtg_Pre","Rtg_Post", "Total","Round1","Round2","Round3","Round4","Round5","Round6","Round7")
+while(j <= length(input_vector))
+{
+    vec <- unlist(as.vector(strsplit(input_vector[j], "[|]")))
+    
+    df_row2 <- rbind(df_row2,data.frame(state=trimws(vec[1]), USCF_ID=trimws(str_extract(vec[2], "[ ][0-9]+")), Rtg_Pre= trimws(str_extract(str_extract(vec[2], "\\:\\s*[0-9]+"),"[0-9]+")), Rtg_Post=trimws(str_extract(str_extract(vec[2], "\\>\\s*[0-9]+"),"[0-9]+")), Total=trimws(vec[3]),Round1=trimws(vec[4]),Round2=trimws(vec[5]),Round3=trimws(vec[6]),Round4=trimws(vec[7]),Round5=trimws(vec[8]),Round6=trimws(vec[9]),Round7=trimws(vec[10])))
+    
+    j<-j+2
+}
+df_row2
+
+# Creating final dataframe by doing column bind with required columns from data frames df_row1 and df_row2
+df_final <- cbind(df_row1, df_row2[1:4])
+
+df_final
+
+```
+
+
+
+# Stpe2:
+> In this step we calculate the average opponent prerating and create a CSV file with desired columns.
+
+- We make use of while anf for oops
+- converted the data types from factor to numeric to calulate average
+- used write.table function to create CSV file
+
+
+```{r}
+
+
+library("dplyr")
+
+# defining vector
+colvalues<-c(1:7)
+
+# creating a 1*n matrix
+Average_Opponent_Pre_Rating <- data.frame(matrix(nrow = 0, ncol = 1))
+k<-1
+while(k <= nrow(df_final))
+{
+  colnames_1<-c("Round1","Round2","Round3","Round4","Round5","Round6","Round7")
+  i<-1
+  for (variable in colnames_1) {
+    colvalues[i]<-as.numeric(levels(df_final[df_final[k,][[variable]], "Rtg_Pre"]))[df_final[df_final[k,][[variable]], "Rtg_Pre"]]
+        i <- i+1
+  
+  }
+
+  mean_df <- data.frame(round(mean(colvalues, na.rm = TRUE), digits = 0))
+  Average_Opponent_Pre_Rating <- rbind(Average_Opponent_Pre_Rating, mean_df)
+  k <- k+1
+}
+
+#doing a column bind to add our averages rating to exisitng data frame
+df_final <- cbind(df_final, Average_Opponent_Pre_Rating)
+
+# Renaming the newly added column
+colnames(df_final)[15] <- "Average_Opponent_Rtg_Pre"
+
+# creating a Dataframe with required columns
+df_result <- select(df_final, Player_Name, state, Total , Rtg_Pre, Average_Opponent_Rtg_Pre)
+df_result
+
+
+# writing the results to a CSV file to local folder
+write.table(df_result, file = "D:/CUNYSPS-MSDS/Project1/df_result.csv", row.names = F, col.names=FALSE, sep = ",")
+
+```
+
+# Stpe3:
+
+> Analysis and Visualization.
+
+- Convert data into numeric
+- Analysis summary on elements and visual graphs
+
+```{r analyzevisialize}
+#Analyze and Visualization
+#Convert entire data frame to numeric
+df_result <- as.data.frame(sapply(df_result, as.numeric))
+#Summary of Players Pre-Ratings
+summary(df_result$'Rtg_Pre')
+#Summary of Average Opponent Ratings
+summary(df_result$'Average_Opponent_Rtg_Pre')
+
+#install.packages("histogram")
+library(histogram)
+
+hist(df_result$'Total', breaks = 30, main = "Distribution of Player Ratings Pre-Tournament", xlab = "Total", ylab = "Count")
+```
