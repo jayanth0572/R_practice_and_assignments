@@ -1,0 +1,129 @@
+---
+title: "week5_Assignment5"
+author: "Jayanth0572"
+date: "September 29, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+> In this task, functions from DPLYR, TIDYR, STRINGR and also from base R are used.
+
+# Step 1: Reading data from input "flight_information.csv" comma delimted file into data frame
+- read.table was used to read the file and column class was changed to Character for all columns as there were numeric values with comma format
+- Column names were assigned to first two columns with missing names
+- Missing Airline names were populated using while loop
+- empty rows were removed and row sequences altered to get proper sequence
+
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(stringr)
+
+# read file
+airlines_df <- read.table("D:/CUNYSPS-MSDS/Assignments/Assignment5/flight_information.csv", header = T, sep = ",", colClasses = rep("character"))
+
+# assign column names
+names(airlines_df)[1:2] <- c("Airlines","Status")
+
+# populate Airline names for missing records
+i <- 1
+while(i <= dim(airlines_df)[[1]])
+{
+  airlines_df$Airlines[[i+1]] <- airlines_df$Airlines[[i]]
+  i <- i+3
+}
+
+airlines_df
+
+# remove empty rows and redo row sequence
+airlines_df <- subset(airlines_df, Airlines != "")
+rownames(airlines_df) <- 1:nrow(airlines_df)
+
+airlines_df
+
+```
+
+# Step 2: Tidying data and doing priliminary transformations
+- gather funciton was used to reshape the table
+- sapply was used to change flightcount column type to numeric
+- mutiple dataframes were created for different purpose as described in the script below (aggregate, merge, names functions were used)
+
+```{r}
+
+# Reshaping Data and converting data type of flight count to numeric
+airlines_reshaped_df<- arrange(gather(airlines_df, City, FlightCount, -(1:2)), City)
+airlines_reshaped_df$FlightCount <- sapply(str_replace(airlines_reshaped_df$FlightCount, ",", ""), as.numeric)
+airlines_reshaped_df
+
+# Finding the Total flights of each of the airline
+Total_flights <- aggregate(airlines_reshaped_df$FlightCount, by = airlines_reshaped_df["Airlines"], sum)
+names(Total_flights)[2] <- "TotalFlights_Count"
+Total_flights
+
+# Finding the Total flights of each of the airline by status
+Total_flights_by_status <- aggregate(airlines_reshaped_df$FlightCount, by = c(airlines_reshaped_df["Airlines"],airlines_reshaped_df["Status"]), sum)
+names(Total_flights_by_status)[3] <- "Flights_Count"
+Total_flights_by_status
+
+# merging the dataframe Total_flights into Total_flights_by_status
+Total_flights_by_status <- merge(Total_flights_by_status, Total_flights, by=c("Airlines"), all.Total_flights_by_status=TRUE)
+Total_flights_by_status
+
+# Total flights by Airlines to a city
+Total_flights_byAirlinesCity <- aggregate(airlines_reshaped_df$FlightCount, by = c(airlines_reshaped_df["Airlines"],airlines_reshaped_df["City"]), sum)
+names(Total_flights_byAirlinesCity)[3] <- "TotalFlights_Count"
+Total_flights_byAirlinesCity
+
+# merging the dataframe Total_flights_byAirlinesCity into airlines_reshaped_df
+Total_flights_byAirlinesCity <- merge(airlines_reshaped_df, Total_flights_byAirlinesCity, by=c("Airlines","City"), all.airlines_reshaped_df=TRUE)
+Total_flights_byAirlinesCity
+
+```
+
+
+# Step 3: Performing Analysis
+- filter, select, mutate, arrange, rep etc., functions were used to perfrom analysis
+
+```{r}
+
+# Finding the Total counts of on time flights by airline.
+ontime_flights <- select(filter(Total_flights_by_status, Status == "on time"), -TotalFlights_Count)
+ontime_flights
+
+#Barplot 1 - On time flights chart by Airline
+barplot(ontime_flights$Flights_Count, main = "On time flights chart by Airline", xlab = "Airlines", ylab = "Flights_count", names.arg = ontime_flights$Airlines, col = "Green", ylim= range(pretty(c(0, ontime_flights$Flights_Count))))
+
+
+# Finding the Total counts of delayed flights by airline.
+delayed_flights <- select(filter(Total_flights_by_status, Status == "delayed"), -TotalFlights_Count)
+delayed_flights
+
+#Barplot 2 - delayed flights chart by Airline. 
+barplot(delayed_flights$Flights_Count, main = "delayed flights chart by Airline", xlab = "Airlines", ylab = "Flights_count", names.arg = delayed_flights$Airlines, col = "Red", ylim= range(pretty(c(0, delayed_flights$Flights_Count))))
+
+
+#Finding the Percent of ontime and delayed status of each of the airlines. This will help the to show the percentages of on time and delayed flights for wach fo the airlines. Amwest is better performing airlines overall. It had the better ontime arrival percentage and least delayed percentage.
+flight_status_Percent <- arrange(mutate(Total_flights_by_status, percent = round(Total_flights_by_status$Flights_Count/Total_flights_by_status$TotalFlights_Count*100,2)), Total_flights_by_status$Airlines, Total_flights_by_status$Status)
+flight_status_Percent
+
+#Barplot 3 - Flight chart with percent of ontime and delay statuses
+barplot(flight_status_Percent$percent, main = "Flight chart with percent of ontime and delay statuses", xlab = "Airlines", ylab = "percent", names.arg = flight_status_Percent$Airlines, col = c("red","Green"), ylim= range(pretty(c(0, round(flight_status_Percent$percent)))))
+legend("topleft", unique(flight_status_Percent$Status), cex = 1.3, fill = c("red","Green"))
+
+
+#Finding the Percent of delays of each airline into a city. This will help to show which city had the most delays overall. Amwest flight to SanFransisco was delayed the most
+flight_status_Percent_city <- filter(arrange(mutate(Total_flights_byAirlinesCity, percent = round(Total_flights_byAirlinesCity$FlightCount/Total_flights_byAirlinesCity$TotalFlights_Count*100,2)), Total_flights_byAirlinesCity$City,Total_flights_byAirlinesCity$Airlines), Status == "delayed")
+flight_status_Percent_city
+
+#Barplot 4 - delayed flights chart by city
+barplot(flight_status_Percent_city$percent, main = "delayed flights chart by city", xlab = "City", ylab = "percent", names.arg = flight_status_Percent_city$City, ylim= range(pretty(c(0, flight_status_Percent_city$percent))), col = rep(c("Blue","Pink"), dim(flight_status_Percent_city)[1]/2), las=2, cex.names = 0.7)
+legend("topleft", unique(flight_status_Percent_city$Airlines), cex = 1.3, fill = c("Blue","Pink"))
+
+
+```
+
