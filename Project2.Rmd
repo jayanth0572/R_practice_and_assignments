@@ -1,0 +1,439 @@
+---
+title: "Project2"
+author: "Jayanth0572 and Sarat"
+date: "October 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+> # <span style="color:red">START DATASET 1</span>
+>  # Using file "FRB_FOR.csv" from Raghed Mirza's discussion post "Industry capacity utilization and recessions"
+
+# Step 1:
+## Reading input file "FRB_FOR.csv" into R
+
+```{r}
+# libraries used
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(DescTools)
+```
+
+```{r}
+# Reading file into R using "read.table" function
+input_df <- read.table("FRB_FOR.csv", sep = ",", header = T, stringsAsFactors = F)
+# Deleting unwanted rows
+input_df <- input_df[-(1:5),]
+# Redoing the row sequence
+rownames(input_df) <- 1:nrow(input_df)
+
+#Data type for the "Series.Description" coulmn was upated and We have the input data ready in required format for further analysis
+input_df[-1] <- round(sapply(input_df[-1], as.numeric),2)
+input_df
+
+```
+
+# step 2:
+## Tidying data
+
+```{r}
+
+#Using pipe operator and adding new columns by mutate and seleting the required columns
+#Year and quarter were seperated for better view of the data. Then data types were updated as required to be able to perform math operations.
+clean_df <- input_df %>% mutate(year = str_extract(Series.Description, "[0-9]+"), quarter = str_extract(Series.Description, "[[:alpha:]]+[0-9]+")) %>% dplyr::select(year, quarter, 2:5)
+#changing the datatype of columns
+clean_df[-2] <- round(sapply(clean_df[-2], as.numeric),2)
+
+clean_df
+
+```
+
+
+# step 3:
+## Analyzinig data
+
+
+> ## question1: What is the trend of Mortgage debt service ratio and consumer debt service ratio.
+  ## finding: Mortgage deb ratio is always lower than Cosumer debt ratio. And Mortgage debt ratio has a clear downward trend while the Consumer debt ratio had fluctuating upward trend. This could be indication that consumer paying less attention to consumer debt and concentrating more on Mortgage debt. This will be a better sign for mortgage lenders.
+
+
+```{r}
+# I am using line graph in GGplot to show the trend of the Mortgage service ratio and Consumer debt service ratio.
+# Initial dataset was used here
+# geom_point marks each of the ratios as dots in the plot.
+# geom_line draws a line through these points and arrow pointer wass used additionally to show the direction we are using in analysis
+#notes: group=1 msut be used to have the proportions of each x value to be relative to all vleus of x. Otherwise the geom_line option doesn't work in this scenario
+
+ggplot(input_df, aes(x=Series.Description, group = 1)) + 
+  geom_point(aes(y= Mortgage.debt.service.ratio..seasonally.adjusted)) + 
+  geom_point(aes(y= Consumer.debt.service.ratio..seasonally.adjusted)) + 
+  geom_line(aes(y= Mortgage.debt.service.ratio..seasonally.adjusted, colour = "1"),arrow = arrow()) +
+  geom_line(aes(y= Consumer.debt.service.ratio..seasonally.adjusted, colour = "2"),arrow = arrow()) +
+  scale_color_discrete(name = "Debt Ratios", labels = c("Mortgage", "Consumer")) + 
+  labs(y="Multiple Debt service Ratios") + 
+  theme(axis.text.x = element_text(size=10, angle=90))
+
+```
+
+
+
+> ## question2: what are the percentages of mortgage service ratio and consumer service ratio in the total rate service ratio and financial obligations ratio?
+  ## Answer: Consumer service ratio played a mjor role in the total ratios. Mortgage ratio had lower percentage and consumer rate ratio had higher percentage. The data below is also segregated by quarters as I wanted to check if any particulr quarter was better(had lower number). But the quarters didn't matter. The data appears to be synched with year on year.
+
+
+```{r}
+
+# 1
+# using clean_df dataframe to create subset for percentages of numbers in total_debt_service_ratio
+# Percentages were calculated and gather function was used to show percent of mortgage and consumer ratios per each year and quarter combination. Ans sapply was used to change datatypes
+debt_service_percentages_df <- clean_df %>% 
+  mutate(mortgage_debt_ratio_percent = round(clean_df$Mortgage.debt.service.ratio..seasonally.adjusted/clean_df$Debt.service.ratio..seasonally.adjusted*100,2),
+                    consumer_debt_ratio_percent = round(clean_df$Consumer.debt.service.ratio..seasonally.adjusted/clean_df$Debt.service.ratio..seasonally.adjusted*100,2)) %>% 
+  dplyr::select(year, quarter, mortgage_debt_ratio_percent, consumer_debt_ratio_percent) %>% 
+  gather(., debt_ratio_percentages, percent, 3:4)
+
+#changing the datatype of columns
+debt_service_percentages_df[1,4] <- round(sapply(debt_service_percentages_df[1,4], as.numeric),2)
+#showing the data from newly created dataframe
+debt_service_percentages_df
+
+# using ggplot to show the percentages of mortgage and consuler debt ratios in total debt ratio segregated by quarters
+# geom_bar shows the percentages as bars.
+# gem_text shows the percentages above each bar
+# facet_wrap segregates by quarter. wrap was used instead of grid for better view of the chart.
+ggplot(debt_service_percentages_df, aes(x = year, y = percent, fill = debt_ratio_percentages)) +
+  geom_bar(stat = "identity", width=0.5, position=position_dodge()) + 
+  geom_text(aes(label=percent), vjust=-0.1, size=2.5, position = position_dodge(width = 0.9)) + 
+  facet_wrap(. ~ quarter, scales = "free_x") + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(y = "debt_ratio_percentages", title = "Percantages of Mortgage & consumer debt ratios in debt service ratio by quarter")
+
+
+# 2
+# using clean_df dataframe to create subset for percentages of numbers in financial_obligations_ratio
+# Percentages were calculated and gather function was used to show percent of mortgage and consumer ratios per each year and quarter combination. Ans sapply was used to change datatypes
+financial_obligations_percentages_df <- clean_df %>% 
+  mutate(mortgage_debt_ratio_percent = round(clean_df$Mortgage.debt.service.ratio..seasonally.adjusted/clean_df$Financial.obligations.ratio..seasonally.adjusted*100,2),
+                    consumer_debt_ratio_percent = round(clean_df$Consumer.debt.service.ratio..seasonally.adjusted/clean_df$Financial.obligations.ratio..seasonally.adjusted*100,2)) %>% 
+  dplyr::select(year, quarter, mortgage_debt_ratio_percent, consumer_debt_ratio_percent) %>% 
+  gather(., financial_obligations_ratio_percentages, percent, 3:4)
+
+#changing the datatype of columns
+financial_obligations_percentages_df[1,4] <- round(sapply(financial_obligations_percentages_df[1,4], as.numeric),2)
+#showing the data from newly created dataframe
+financial_obligations_percentages_df
+
+# using ggplot to show the percentages of mortgage and consuler debt ratios in financial_obligations ratio segregated by quarters
+# geom_bar shows the percentages as bars.
+# gem_text shows the percentages above each bar
+# facet_wrap segregates by quarter. wrap was used instead of grid for better view of the chart.
+ggplot(financial_obligations_percentages_df, aes(x = year, y = percent, fill = financial_obligations_ratio_percentages)) +
+  geom_bar(stat = "identity", width=0.5, position=position_dodge()) + 
+  geom_text(aes(label=percent), vjust=-0.1, size=2.5, position = position_dodge(width = 0.9)) + 
+  facet_wrap(. ~ quarter, scales = "free_x") + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(y = "financial_obligations_ratio_percentages", title = "Percantages of Mortgage & consumer debt ratios in the financial obligations ratio")
+
+```
+
+> #Question3:  What is the ratio of other debt ratios in the overall ratio (Financial obligations ratio).
+  # Answer: other debt ratios combined appears to be also playing major part in the increase in overall ratio. This combined other debt ratio is close to consumer debt ratio.
+  # line graph was also created to show the total ratios as well as other ratios to see how they varied in each quarter
+
+```{r}
+# creating dataframe to store the calculated remaiaing ratio from other debts
+other_debt_df <- clean_df %>% 
+  mutate(other.debt.ratio = round(Financial.obligations.ratio..seasonally.adjusted-Debt.service.ratio..seasonally.adjusted,2))
+
+#summary of the other_debt_df written to a dataframe
+summary.df <- data.frame(summary(other_debt_df)) %>% dplyr::select(2:3)
+names(summary.df)
+summary.df
+
+# extracting lowest number for all debt ratios
+lowest_financial_obligation_ratio <- (filter(summary.df, Freq %like% "^(Min. )[[:print:]]+"))
+lowest_financial_obligation_ratio
+
+# extracting highest number for all debt ratios
+highest_financial_obligation_ratio <- filter(summary.df, Freq %like% "^(Max. )[[:print:]]+")
+highest_financial_obligation_ratio
+
+# showing the results based on minimum and maximum Financial.obligations.ratio as this the overall ratio
+# year 2016 and Q3 has highest ratio
+# year 2019	and Q2 has lowest ratio
+(filter(other_debt_df, Financial.obligations.ratio..seasonally.adjusted %in% c(sapply(str_extract(lowest_financial_obligation_ratio$Freq, "[0-9]+\\.[0-9]+"),as.numeric),sapply(str_extract(highest_financial_obligation_ratio$Freq, "[0-9]+\\.[0-9]+"),as.numeric))))
+
+# using ggplot to show the line graphs for the debt rate ratio, financial obligation ratio and other debt ratio. The results aree also segregated by quarter to see if we can get some insights based on quarter. No effect of quarter n this either
+ggplot(other_debt_df, aes(x=year, group = 1)) + 
+  geom_point(aes(y= Financial.obligations.ratio..seasonally.adjusted)) + 
+  geom_point(aes(y= Debt.service.ratio..seasonally.adjusted)) + 
+  geom_point(aes(y= other.debt.ratio)) + 
+  geom_line(aes(y= Financial.obligations.ratio..seasonally.adjusted, colour = "1"),arrow = arrow()) +
+  geom_line(aes(y= Debt.service.ratio..seasonally.adjusted, colour = "2"),arrow = arrow()) +
+  geom_line(aes(y= other.debt.ratio, colour = "3"),arrow = arrow()) +
+  facet_grid(. ~ quarter) +
+  scale_color_discrete(name = "Debt Ratios", labels = c("Financial.obligations.ratio", "Debt.service.ratio", "other.debt.ratio,")) + 
+  labs(y="Multiple Debt service Ratios") + 
+  theme(axis.text.x = element_text(size=10, angle=90))
+
+```
+
+> # <span style="color:red">END DATASET 1</span>
+  # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+> # <span style="color:red">START DATASET 2</span>
+> # Using file "Arrests.csv" from Sie Song Wong's discussion post "Marijuana Arrests Dataset"
+
+# Step 1:
+## Reading input file "Arrests.csv" into R
+
+```{r}
+# Reading file into R using "read.table" function
+input_df <- read.table("Arrests.csv", sep = ",", header = T, stringsAsFactors = F)
+#Deleting unwanted column color
+input_df <- input_df[,-c(3)]
+#Renamng column 1
+names(input_df)[1] <-"convict_id"
+
+#print part of the dataframe
+head(input_df)
+
+```
+
+# Step 2:
+## simple tidying
+### NOte: dplyr package was used infront of select function as it was not functioning properly
+
+```{r}
+
+# Reordering columns
+clean_df <- input_df %>% dplyr::select(convict_id, year, released, checks, age, sex, citizen, employed) %>% arrange(., year)
+names(clean_df)[4] <-"Past_history_count"
+names(clean_df)[6] <-"Gender"
+
+##print part of the clean dataframe
+head(clean_df)
+
+```
+
+> # Question1: Figure out which gender had more arrests between year 1997 and 2002.
+  # Answer: Based on the data, females had fewer arrests than males.
+
+```{r}
+
+# Creating a dataset with counts of arrests based on Gender
+arrest_count_by_gender <- clean_df %>% 
+  filter(., year %in% c(1997:2002)) %>%  
+  group_by(Gender) %>% 
+  summarise(.,count = n())
+
+arrest_count_by_gender
+
+# barplot
+bp <- barplot(arrest_count_by_gender$count, main = "Arrest count by Gender", xlab = "color", ylab = "count", 
+        names.arg = arrest_count_by_gender$Gender, ylim= range(pretty(c(0, arrest_count_by_gender$count+1000))), 
+        col = c("pink","blue"))
+text(x = bp, y = arrest_count_by_gender$count, label = arrest_count_by_gender$count, pos = 3, cex = 0.8)
+legend("topleft", unique(arrest_count_by_gender$Gender), cex = 1, fill = c("pink","blue"))
+
+
+```
+
+> # Question2: Figure out which age group had more arrests and check what is the percent of males and females in those groups. Consider adulthood (18 to 35 years), middle age (36 to 55 years), and older adulthood (56 years and older).
+  # Answer: Based on the data, females had fewer arrests than males. And adulthood (18 to 35 years) was seen to have more arrest percentages
+
+```{r}
+
+# creating a new data frame by adding column age_group 
+agegroup_df <- clean_df %>% 
+  filter(., year %in% c(1997:2002)) %>% 
+  mutate(age_group = "18 below")
+head(agegroup_df)
+
+# updating column age_group with appropriate values
+i <- 1
+  while(i <= nrow(agegroup_df))
+    {
+    agegroup_df$age_group[i] = if(agegroup_df$age[i] >= 18 & agegroup_df$age[i] <=35)
+      {
+      "18 to 35"
+      }else if(agegroup_df$age[i] >= 36 & agegroup_df$age[i] <=55)
+      {
+          "36 to 55"
+      }else if(agegroup_df$age[i] >= 56)
+      {
+          "56 and older"
+      }else
+      {
+          "18 below"
+      }
+    i <- i+1
+    }
+
+head(agegroup_df)
+
+arrest_count_by_age <- agegroup_df %>% 
+  group_by(age_group, Gender) %>% 
+  summarise(.,count = n()) %>% 
+  mutate(count_percent = round(count/sum(.$count)*100,2))
+arrest_count_by_age
+
+ggplot(arrest_count_by_age, aes(x = age_group, y = count_percent, fill = Gender)) +
+  geom_bar(stat = "identity", width=0.5, position=position_dodge()) + 
+  geom_text(aes(label= count_percent), vjust=-0.1, size=3.5, position = position_dodge(width = 0.9)) +
+  facet_grid(. ~ Gender) +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(y = "count_percent", title = "Arrest percent by agegroup for Male and Female")
+
+```
+
+> # Question3: Most times arrested and were they citizens and were they employed
+  # Answer: Majority convicted are citizens and employed, And few were convicted who are both non citizen and not employed. Also, 85% are citizens.
+
+```{r}
+
+# creating dataframe to answer question 3
+# required columns were selected, data in citizen and employed status was updated and columns were reorganized 
+other_factors_df <- clean_df %>% 
+  filter(., year %in% c(1997:2002)) %>% 
+  dplyr::select(convict_id, Past_history_count, citizen, employed) %>%
+  mutate(citizen = replace(replace(citizen, citizen == "No", "Non Citizen"), citizen == "Yes", "Citizen")) %>%
+  mutate(employed = replace(replace(employed, employed == "No", "Not employed"), employed == "Yes", "employed")) %>%
+  mutate(status = str_c(citizen," & ",employed)) %>%
+  dplyr::select(convict_id, status, Past_history_count)
+
+#adding count 1 which is the current arrest record to the past history count
+other_factors_df$Past_history_count <- other_factors_df$Past_history_count+1
+#showing part of the dataset
+head(other_factors_df)
+
+#final dataset to show the arrest count and percentages by status
+# Arrest count and percentages were calculated additionally in this data frame
+arrest_count_by_other_factors <- other_factors_df %>%
+  group_by(status) %>% 
+  summarise(.,count = n()) %>% 
+  mutate(count_percent = round(count/sum(.$count)*100,2))
+
+#showing the results of arrest count and percentage
+arrest_count_by_other_factors
+
+# Pie chart to give visual display of the percentages
+pie(arrest_count_by_other_factors$count_percent, label = arrest_count_by_other_factors$count_percent, main = "Arrest percentage by citizenship and employment status",col = rainbow(length(arrest_count_by_other_factors$count_percent)))
+legend("topright", arrest_count_by_other_factors$status, cex = 0.7,
+   fill = rainbow(length(arrest_count_by_other_factors$count_percent)))
+
+```
+
+> # <span style="color:red">END DATASET 2</span>
+  # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+> # <span style="color:red">START DATASET 3</span>
+> # Using file "AB_NYC_2019.csv" from Kaggle "https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data/downloads/new-york-city-airbnb-open-data.zip/3"
+
+# Step 1:
+## Reading input file "AB_NYC_2019.csv" into R
+
+```{r}
+# Reading file into R using "read.table" function
+# using read.csv as read.table is data reading was not proper.Whole row is populaitng in a column randomly
+input_df <- read.csv("AB_NYC_2019.csv", stringsAsFactors = F)
+
+#showing the data in dataframe
+head(input_df)
+
+```
+
+# step 2: Analysis
+
+> # question1: which neightbourhood has the rooms available for 365 days and has all the room types to choose from
+# Anser: There are 130 cities in total which offer rooms 365 days.And there are 23 neighbourhoods with room avaialibity for 365 days with all the room type options.
+Private room offering is more when checked for 365 days availability
+
+```{r}
+
+availability_365_df <- input_df %>% 
+  filter(., availability_365 == 365) %>% 
+  group_by(neighbourhood,room_type) %>% 
+  summarise(., roomtype_count = n()) %>%
+  arrange(neighbourhood)
+
+# what are the room tpes? "Entire home/apt" "Private room"    "Shared room"  
+unique(availability_365_df$room_type)
+# showing all the neighbourhoods which the available room types offering for 365 days
+availability_365_df
+
+# ggplot depicting the avaialbility of each of the room types in the neighbourhoods which are avaialble 365 days
+ggplot(availability_365_df, aes(x = neighbourhood, y = room_type , fill = room_type, colour = room_type)) +
+  geom_point() +
+  theme(axis.text.x=element_blank())
+
+neighbourood_with365_and3roomtypes_df <- availability_365_df %>% 
+  summarise(., roomtype_count = n())
+# showing all the neighbourhoods which have the room offering for 365 days
+neighbourood_with365_and3roomtypes_df
+
+neighbourood_with365_and3roomtypes_df <- neighbourood_with365_and3roomtypes_df %>% 
+  filter(., roomtype_count == 3)
+# showing all the neighbourhoods which have all the room types offering for 365 days
+neighbourood_with365_and3roomtypes_df
+
+
+```
+
+> # Analysis2: Cheapest option avaialbe in each of the nieghbourhoods
+
+```{r}
+
+cheapest_options_in_neighbouhood_df <- input_df %>%
+  group_by(neighbourhood_group,neighbourhood) %>%
+  filter(., price == min(price))
+
+# lising newighbourds with the cheapest options
+cheapest_options_in_neighbouhood_df
+
+```
+
+> # questoin2: What are my room type options?
+# answer: Manhattan has most options for "Entire home/apt" and Brooklyn has most options for "Pivate room", while Manhattan and Brooklyn had almost the same options for "Shared room".
+Staten Island and Bronx are the one's with very few options. Queens has moderate availability 
+
+```{r}
+
+# creating dataframe for newighbourhood groups, room type and the percentages of room types for each of the newighbourhood groups
+# Notie, the sum taken is the total sum and not by the each nieghbouood group
+neighbourhood_room_options_df <- input_df %>% 
+  group_by(neighbourhood_group,room_type) %>% 
+  summarise(., roomtype_count = n()) %>%
+  mutate(roomtype_percent = round(roomtype_count/sum(.$roomtype_count)*100,2)) %>%
+  arrange(neighbourhood_group)
+
+neighbourhood_room_options_df
+
+ggplot(neighbourhood_room_options_df, aes(x= room_type, y = roomtype_percent, fill = room_type)) + 
+  geom_bar(stat = "identity", width=0.5, position=position_dodge()) + 
+  geom_text(aes(label=roomtype_percent), vjust=-0.3, size=3, position = position_dodge(width = 0.9)) + 
+  facet_grid(. ~ neighbourhood_group, scales = "free_x") + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(y = "roomtype_percent", title = "Chart showing percentages of room types availabe by the neighbourhood groups")
+
+```
+
+> # <span style="color:red">END DATASET 3</span>
+  # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
