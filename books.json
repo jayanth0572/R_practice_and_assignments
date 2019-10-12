@@ -1,0 +1,31 @@
+{
+   "books": [
+      {
+         "ListId": "1",
+         "Title": "Data Science for Business",
+         "Authors": "Foster Provost, Tom Fawcett",
+         "Publisher": "O'Reilly Media, Inc.",
+         "ReleaseDate": "August 2013",
+         "ISBN": "9781449361327",
+         "BookDescription": "Written by renowned data science experts Foster Provost and Tom Fawcett, Data Science for Business introduces the fundamental principles of data science, and walks you through the \"data-analytic thinking\" necessary for extracting useful knowledge and business value from the data you collect. This guide also helps you understand the many data-mining techniques in use today."
+      },
+      {
+         "ListId": "2",
+         "Title": "R for Data Science",
+         "Authors": "Garrett Grolemund, Hadley Wickham",
+         "Publisher": "O'Reilly Media, Inc.",
+         "ReleaseDate": "December 2016",
+         "ISBN": "9781491910399",
+         "BookDescription": "Learn how to use R to turn raw data into insight, knowledge, and understanding. This book introduces you to R, RStudio, and the tidyverse, a collection of R packages designed to work together to make data science fast, fluent, and fun. Suitable for readers with no previous programming experience, R for Data Science is designed to get you doing data science as quickly as possible."
+      },
+      {
+         "ListId": "3",
+         "Title": "Automated Data Collection with R",
+         "Authors": "Simon Munzert, Christian Rubba, Peter Meibner, Dominic Nyhuis",
+         "Publisher": "John Wiley & Sons, Ltd",
+         "ReleaseDate": "2015",
+         "ISBN": "9781118834817",
+         "BookDescription": "A Practical Guide to Web Scraping and Text Mining"
+      }
+   ]
+}
