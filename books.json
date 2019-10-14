@@ -3,7 +3,7 @@
       {
          "ListId": "1",
          "Title": "Data Science for Business",
-         "Authors": "Foster Provost, Tom Fawcett",
+         "Authors": ["Foster Provost", "Tom Fawcett"],
          "Publisher": "O'Reilly Media, Inc.",
          "ReleaseDate": "August 2013",
          "ISBN": "9781449361327",
@@ -12,7 +12,7 @@
       {
          "ListId": "2",
          "Title": "R for Data Science",
-         "Authors": "Garrett Grolemund, Hadley Wickham",
+         "Authors": ["Garrett Grolemund", "Hadley Wickham"],
          "Publisher": "O'Reilly Media, Inc.",
          "ReleaseDate": "December 2016",
          "ISBN": "9781491910399",
@@ -21,7 +21,7 @@
       {
          "ListId": "3",
          "Title": "Automated Data Collection with R",
-         "Authors": "Simon Munzert, Christian Rubba, Peter Meibner, Dominic Nyhuis",
+         "Authors": ["Christian Rubba", "Dominic Nyhuis", "Simon Munzert", "Peter Meibner"],
          "Publisher": "John Wiley & Sons, Ltd",
          "ReleaseDate": "2015",
          "ISBN": "9781118834817",

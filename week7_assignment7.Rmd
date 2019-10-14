@@ -1,0 +1,99 @@
+---
+title: "week7_assignment7"
+author: "Jayanth0572"
+date: "October 13, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+> # Reading files in multiple formats(XML, HTML and JSON) into R
+  - XML and HTML files require XML library and for JSON file, jsonlite library was used. There were also other options, but these were pretty straight forward.
+  - When we create dataframes, the datafrmaes for XML and HTML imports looked similar. The column types were all factors. For JSON import, the column with array input was read as a list instead of reading as a string with the values seperated by some delimiter. rest of the columns types were character.
+
+
+# Reading XML data into R
+- Requires XML library import
+- "xmlToDataFrame"" function was used to create dataframe by directly reading from the input XML file
+- The column types are all factors
+
+```{r}
+
+library(XML)
+
+# creating dataframe from the input xml using xmlToDataFrame function
+books_xml_df <- xmlToDataFrame("books.xml")
+#printing the dataframe
+books_xml_df
+
+# class is dataframe and type is list
+(class(books_xml_df))
+(typeof(books_xml_df))
+
+```
+
+
+
+# Reading HTML data into R
+- Requires XML library import
+- "readHTMLTable"" function was used to read the input HTML file as a table into R. Te result will be a ist
+- Then the list was converted to a dataframe
+- The column types are all factors
+
+```{r}
+
+library(XML)
+
+# Reading HTML file into R using xmlParse function
+html_obj <-readHTMLTable("books.html", header = T)
+# Assigning name to the list
+names(html_obj) <- "books"
+#printing the list
+html_obj
+
+# Converting list to a dataframe
+books_html_df <- html_obj$'books'
+#printing the dataframe
+books_html_df
+
+# class is dataframe and type is list
+(class(books_html_df))
+(typeof(books_html_df))
+
+```
+
+
+# Reading JSON data into R
+- Requires jsonlite library import
+- "fromJSON"" function was used to read the input JSON file as a table into R. Te result will be a ist
+- Then the list was converted to a dataframe
+- The column types are combination of character and list
+> Array we used for authors was imported as a list
+
+```{r}
+
+library(jsonlite)
+
+# Getting json data into R. fromJSON function imports the jasaon data as list
+json_obj <- fromJSON("books.json")
+#printing the list
+json_obj
+
+# converitng list to a dataframe.
+# Note1: Notice, the Authors column is a list
+books_json_df <- json_obj$'books'
+#printing the dataframe
+books_json_df
+
+# Authors by row sequence
+(books_json_df$Authors)
+
+# class is dataframe and type is list
+class(books_json_df)
+typeof(books_json_df)
+
+```
+
+
