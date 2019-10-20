@@ -1,0 +1,565 @@
+---
+title: "project3"
+author: "Tony, Lin, Jayanth, Sarat and Raghed"
+date: "October 18, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+> # Task1 start : Extract from Article
+
+# Task: Using rvest package to extract the essential data science skills and the suppooting factors for each of these skills. This requires simple tidying and after all the required data is collected it was loaded intoa  data frame
+
+# Libraries used
+```{r}
+library(rvest)
+library(xml2)
+library(stringr)
+library(stringi)
+library(RPostgreSQL)
+library(tidyverse)
+library(ggplot2)
+```
+
+# reading the web page into R
+- requires rvest package and read_ntml function is used
+
+```{r}
+# article1
+forbes_webpage <- read_html("https://www.forbes.com/sites/quora/2017/06/15/what-are-the-top-five-skills-data-scientists-need/#4e2311777c0c")
+
+forbes_webpage
+
+# article2
+udacity_webpage <- read_html("https://blog.udacity.com/2014/11/data-science-job-skills.html")
+
+udacity_webpage
+
+```
+
+# Extracting the skill set into R
+- From the imported xml document, we will be extracting essential skills required for data scientist
+- again requires rvest package and html_nodes and html_text functions are used
+- we also use string mainupalation functions to get the data as desired
+
+```{r}
+skills_forbes <- forbes_webpage %>%
+  html_nodes(., "p") %>%
+  html_nodes(., "b") %>%
+  html_text() %>%
+  str_extract(., "[Skill]{5}\\s*\\#[0-9][[:print:]]+") %>%
+  str_extract(., "\\s+[[:alpha:]][[:print:]]+") %>%
+  na.omit() %>%
+  str_trim()
+
+skills_forbes
+
+skills_udacity <- udacity_webpage %>%
+  html_nodes(., "p") %>%
+  html_nodes(., "strong") %>%
+  html_text() %>%
+  na.omit() %>%
+  str_trim() %>%
+  .[1:8]
+
+skills_udacity
+```
+
+# Extracting the supporting factors into R
+- From the imported xml document, we will be extracting supporting factors for the skills
+- again requires rvest package and html_nodes and html_text functions are used
+- we also use string mainupalation functions to get the data as desired
+
+```{r}
+
+supporting_factor <- forbes_webpage %>%
+  html_nodes(., "ul") %>%
+  html_nodes(., "li") %>%
+  html_nodes(., "b") %>%
+  html_text() %>%
+  str_trim() %>%
+  stri_remove_empty() %>%
+  str_replace_all(., "[[:punct:]]", "")
+ 
+supporting_factor
+```
+
+
+# Creata a dataframe
+- We then import all of our extracted data into a dataframe
+
+```{r}
+
+forbes_df <- data.frame(source = "www.forbes.com", source_type = "Article", skill=skills_forbes, stringsAsFactors = F)
+
+forbes_df <- forbes_df[rep(seq_len(nrow(forbes_df)), each = 3), ] %>%
+  cbind(supporting_factor, stringsAsFactors =F) %>%
+  cbind(flag_processed = "N", stringsAsFactors =F) %>%
+  cbind(frequency = 0, stringsAsFactors =F)
+
+forbes_df
+
+
+udacity_df <- data.frame(source = "blog.udacity.com", source_type = "Article", skill=skills_udacity, stringsAsFactors = F)
+
+udacity_df <- udacity_df %>%
+  cbind(supporting_factor = "", stringsAsFactors =F) %>%
+  cbind(flag_processed = "N", stringsAsFactors =F) %>%
+  cbind(frequency = 0, stringsAsFactors =F)
+
+udacity_df
+
+article_df <- rbind(forbes_df, udacity_df)
+article_df
+ 
+```
+
+# Loading to database
+- We are using postgres database for our data storage
+- Data was retrieved from dataframe and laoded to a staging table with flag_processed as 'N'. So we can be sure these are yet to be inserted into normalized tables.
+- Then using set of inert statements data was inserted into normalized tables. updates were ignored
+- once the statement execution is complete, staging table was updated with flag_processed = Y, so we can make sure most recent transactions were processed
+
+```{r include=FALSE}
+pwd <- ""
+```
+
+```{r}
+
+library(sqldf)
+
+#create driver object
+drv <- dbDriver("PostgreSQL")
+
+#create connection object
+skills_db <- dbConnect(drv,
+                 user="postgres", 
+                 password=pwd,
+                 host="localhost", 
+                 port=5432, 
+                 dbname="proejct3")
+
+# list all the tables in "skills_db" object
+dbListTables(skills_db)
+
+# insert data into staging table
+dbWriteTable(skills_db, 'skills_staging', value=article_df,overwrite=T,row.names=F)
+
+# insert into skills table from staging table
+dbGetQuery(skills_db, "insert into skills(skill)
+select distinct a.skill from skills_staging as a
+where a.flag_processed = 'N'
+and not exists (select 1 from skills where skill = a.skill);")
+
+# insert into source table from staging table
+dbGetQuery(skills_db, "insert into source(source, source_type)
+select distinct a.source, a.source_type from skills_staging as a
+where a.flag_processed = 'N'
+and not exists (select 1 from source where source = a.source and source_type = a.source_type);")
+
+# insert into supporting_factor table from staging table
+dbGetQuery(skills_db, "insert into supporting_factor
+select distinct b.skill_id, a.supporting_factor from skills_staging a, skills b
+where a.flag_processed = 'N'
+and a.skill = b.skill
+and a.supporting_factor is not null
+and not exists (select 1 from supporting_factor where skill_id = b.skill_id)
+and not exists (select 1 from supporting_factor where supporting_factor = a.supporting_factor);")
+
+# insert into skills_information table from staging table
+dbGetQuery(skills_db, "insert into skill_information(skill_id, skill, count, source_id)
+select x.skill_id, x.skill, (case when x.frequency>0 then x.frequency else x.count end) count, x.source_id
+from 
+(select b.skill_id, b.skill, count(*), c.source_id, a.frequency from skills_staging a
+left outer join source c on c.source = a.source
+inner join skills b on b.skill = a.skill
+where a.flag_processed = 'N'
+and not exists (select 1 from skill_information where source_id = c.source_id and skill_id = b.skill_id)
+group by b.skill_id, b.skill, c.source_id, a.frequency
+) x;")
+
+# update staging table with flag 'Y' to see if the most recent transactions were processed into normalized tables
+dbGetQuery(skills_db, "update skills_staging set flag_processed = 'Y';")
+
+# disconnect from DB
+dbDisconnect(skills_db)
+```
+
+> # Task1 End : Extract from Article
+
+-
+-
+-
+-
+-
+
+> # Task2 Start : Extract from Jobsite Indeed
+
+### My goal is to scrape data from indeed.com. Indeed.com is a website where employers post job positings to seek employees that fit the skills they need for their company. By scraping indeed.com I can search the skills are valued by companies for the job data scientists. I will be searching data scientists in the USA region.
+
+### I will scrape through the first 10 pages of indeed.com and then extract the data into a csv file. Then in csv file, searching through the job descriptions, I want to look for the skills that are most likely repeated. These repetitive words will deem the words or skills are mentioned a lot in every job posting.
+
+
+# Creating a datatable
+# Run the function through 10 pages of indeed.com searching for job title, company name, location, job summary and description
+```{r}
+df<-data.frame(title=character(),
+               company=character(),
+               location=character(),
+               summary=character(),
+               link=character())
+for (i in seq(0, 90, 10)){
+  url_pages<-paste0("https://www.indeed.com/jobs?q=data+scientist&l=USA&start=", i)
+  page <- xml2::read_html(url_pages)
+  
+  #get the job title
+  job_title <- page %>% 
+    rvest::html_nodes("div") %>%
+    rvest::html_nodes(xpath = '//*[@data-tn-element = "jobTitle"]') %>%
+    rvest::html_attr("title")
+  
+  # get location
+  location<-page %>% 
+    rvest::html_nodes("span") %>% 
+    rvest::html_nodes(xpath = '//*[@class="location accessible-contrast-color-location"]')%>% 
+    rvest::html_text() %>%
+    stringi::stri_trim_both()
+  
+  # get company name
+  company<-page %>% 
+    rvest::html_nodes("span")  %>% 
+    rvest::html_nodes(xpath = '//*[@class="company"]')  %>% 
+    rvest::html_text() %>%
+    stringi::stri_trim_both()
+  
+  # get summary
+  summary<-page %>%
+    rvest::html_nodes("span")  %>% 
+    rvest::html_nodes(xpath = '//*[@class="summary"]') %>% 
+    rvest::html_text() %>%
+    stringi::stri_trim_both()
+  
+  # get links xpath
+  link<-page %>% 
+    rvest::html_nodes("div") %>%
+    rvest::html_nodes(xpath = '//*[@data-tn-element="jobTitle"]') %>%
+    rvest::html_attr("href")
+  link <- paste0("https://www.indeed.com",link)
+  
+  
+  df <- rbind(df, as.data.frame(cbind(job_title, location, company, summary, link)))
+  
+}
+```
+
+# Using the links from previous, we will acquire the descriptions of each job
+```{r}
+for (i in (1:length(df$link))){
+  description <- tryCatch(
+    html_text(html_node(read_html(as.character(df$link[i])),'.jobsearch-JobComponent-description')),
+    error=function(e){NA}
+  )
+  if (is.null(description)){
+    desc <- NA
+  }
+  df$description[i] <- description
+}
+```
+
+# Write the .csv file into Excel.
+
+```{r}
+write.csv(df, "datascienceskills.csv")
+```
+
+# The following is to find the frequencies of words from the excel files.
+
+```{r}
+sentences<-scan("datascienceskills.csv","character",sep="\n")
+#Replace full stop and comma
+sentences<-gsub("\\.","",sentences)
+sentences<-gsub("\\,","",sentences)
+
+#Split sentence
+words<-strsplit(sentences," ")
+
+#Calculate word frequencies
+words.freq<-table(unlist(words))
+
+wordtable<-cbind(names(words.freq),as.integer(words.freq))
+wordtable<-data.frame(wordtable, stringsAsFactors = F)
+
+head(wordtable)
+
+# arrange from most to least
+
+test1<-wordtable %>% 
+  filter(X1=='Machine'| X1=='Analytics' | X1=='C' | X1=='C++'| X1=='experience'| X1=='ggplot'| X1=='Java'| X1=='JavaScript'| X1=='machine'| X1=='mining'| X1=='modeling'| X1=='MySQL'| X1=='Python'| X1=='R'| X1=='Statistics')
+
+names(test1)[1] <- "skill"
+names(test1)[2] <- "frequency"
+
+head(test1)
+
+source <- "www.indeed.com"
+source_type <- "Job Posting Site"
+supporting_factor <- ""
+flag_processed <- "N"
+
+JobPosting_df <- test1 %>% 
+    cbind(source, stringsAsFactors = F) %>%
+    cbind(source_type, stringsAsFactors = F) %>%
+    cbind(supporting_factor, stringsAsFactors = F) %>%
+    cbind(flag_processed, stringsAsFactors = F) %>%
+    .[,c(3,4,1,5,6,2)]
+
+JobPosting_df <- transform(JobPosting_df, frequency = as.numeric(frequency))
+
+JobPosting_df
+
+```
+
+```{r include=FALSE}
+pwd <- ""
+```
+
+```{r}
+drv <- dbDriver("PostgreSQL")
+
+#create connection object
+skills_db <- dbConnect(drv,
+                 user="postgres", 
+                 password=pwd,
+                 host="localhost", 
+                 port=5432, 
+                 dbname="proejct3")
+
+# list all the tables in "skills_db" object
+dbListTables(skills_db)
+
+# insert data into staging table
+dbWriteTable(skills_db, 'skills_staging', value=JobPosting_df,overwrite=T,row.names=F)
+
+# insert into skills table from staging table
+dbGetQuery(skills_db, "insert into skills(skill)
+select distinct a.skill from skills_staging as a
+where a.flag_processed = 'N'
+and not exists (select 1 from skills where skill = a.skill);")
+
+# insert into source table from staging table
+dbGetQuery(skills_db, "insert into source(source, source_type)
+select distinct a.source, a.source_type from skills_staging as a
+where a.flag_processed = 'N'
+and not exists (select 1 from source where source = a.source and source_type = a.source_type);")
+
+# insert into supporting_factor table from staging table
+dbGetQuery(skills_db, "insert into supporting_factor
+select distinct b.skill_id, a.supporting_factor from skills_staging a, skills b
+where a.flag_processed = 'N'
+and a.skill = b.skill
+and a.supporting_factor is not null
+and not exists (select 1 from supporting_factor where skill_id = b.skill_id)
+and not exists (select 1 from supporting_factor where supporting_factor = a.supporting_factor);")
+
+# insert into skills_information table from staging table
+dbGetQuery(skills_db, "insert into skill_information(skill_id, skill, count, source_id)
+select x.skill_id, x.skill, (case when x.frequency>0 then x.frequency else x.count end) count, x.source_id
+from 
+(select b.skill_id, b.skill, count(*), c.source_id, a.frequency from skills_staging a
+left outer join source c on c.source = a.source
+inner join skills b on b.skill = a.skill
+where a.flag_processed = 'N'
+and not exists (select 1 from skill_information where source_id = c.source_id and skill_id = b.skill_id)
+group by b.skill_id, b.skill, c.source_id, a.frequency
+) x;")
+
+# update staging table with flag 'Y' to see if the most recent transactions were processed into normalized tables
+dbGetQuery(skills_db, "update skills_staging set flag_processed = 'Y';")
+
+# disconnect from DB
+dbDisconnect(skills_db)
+```
+
+> # Task2 End : Extract from Jobsite Indeed
+
+-
+-
+-
+-
+-
+
+> # Task3 Start : Extract from Jobsite Glassdoor
+
+```{r}
+
+glassdoor <- read_html("https://www.glassdoor.com/Job-Descriptions/Data-Scientist.htm") %>% 
+    rvest::html_nodes("li") %>% 
+    rvest::html_text()
+   
+splitStr <- strsplit(glassdoor, " ")
+flatList <- unlist(glassdoor, recursive = FALSE)
+skillsDF <- data.frame(flatList)
+wordCount <- count(skillsDF, "flatList")
+
+```
+
+```{r}
+# Creating new data frame from "skills" for easy access for teammates.
+
+
+source <- "www.glassdoor.com"
+source_type <- "Job Posting Site"
+skill <- c('Analytics', 'C, C++', 'experience', 'ggplot', 'Java, JavaScript', 'machine', 'mining', 'modeling', 'MySQL,', 'Python', 'R', 'Statistics')
+frequency <- c(14, 4, 16, 2, 3, 3, 5, 8, 2, 3, 2, 12 )
+supporting_factor <- ""
+flag_processed <- "N"
+JobPosting1_df <- data.frame(skill, frequency)
+
+JobPosting1_df <- JobPosting1_df %>% 
+    cbind(source, stringsAsFactors = F) %>%
+    cbind(source_type, stringsAsFactors = F) %>%
+    cbind(supporting_factor, stringsAsFactors = F) %>%
+    cbind(flag_processed, stringsAsFactors = F) %>%
+    .[,c(3,4,1,5,6,2)]
+
+JobPosting1_df
+```
+
+
+```{r include=FALSE}
+pwd <- ""
+```
+
+```{r}
+drv <- dbDriver("PostgreSQL")
+
+#create connection object
+skills_db <- dbConnect(drv,
+                 user="postgres", 
+                 password=pwd,
+                 host="localhost", 
+                 port=5432, 
+                 dbname="proejct3")
+
+# list all the tables in "skills_db" object
+dbListTables(skills_db)
+
+# insert data into staging table
+dbWriteTable(skills_db, 'skills_staging', value=JobPosting1_df,overwrite=T,row.names=F)
+
+# insert into skills table from staging table
+dbGetQuery(skills_db, "insert into skills(skill)
+select distinct a.skill from skills_staging as a
+where a.flag_processed = 'N'
+and not exists (select 1 from skills where skill = a.skill);")
+
+# insert into source table from staging table
+dbGetQuery(skills_db, "insert into source(source, source_type)
+select distinct a.source, a.source_type from skills_staging as a
+where a.flag_processed = 'N'
+and not exists (select 1 from source where source = a.source and source_type = a.source_type);")
+
+# insert into supporting_factor table from staging table
+dbGetQuery(skills_db, "insert into supporting_factor
+select distinct b.skill_id, a.supporting_factor from skills_staging a, skills b
+where a.flag_processed = 'N'
+and a.skill = b.skill
+and a.supporting_factor is not null
+and not exists (select 1 from supporting_factor where skill_id = b.skill_id)
+and not exists (select 1 from supporting_factor where supporting_factor = a.supporting_factor);")
+
+# insert into skills_information table from staging table
+dbGetQuery(skills_db, "insert into skill_information(skill_id, skill, count, source_id)
+select x.skill_id, x.skill, (case when x.frequency>0 then x.frequency else x.count end) count, x.source_id
+from 
+(select b.skill_id, b.skill, count(*), c.source_id, a.frequency from skills_staging a
+left outer join source c on c.source = a.source
+inner join skills b on b.skill = a.skill
+where a.flag_processed = 'N'
+and not exists (select 1 from skill_information where source_id = c.source_id and skill_id = b.skill_id)
+group by b.skill_id, b.skill, c.source_id, a.frequency
+) x;")
+
+# update staging table with flag 'Y' to see if the most recent transactions were processed into normalized tables
+dbGetQuery(skills_db, "update skills_staging set flag_processed = 'Y';")
+
+
+# disconnect from DB
+dbDisconnect(skills_db)
+```
+
+> # Task3 End : Extract from Jobsite Glassdoor
+-
+-
+
+
+# downloading data from database to dataframe for analysis
+
+```{r}
+
+drv <- dbDriver("PostgreSQL")
+
+#create connection object
+skills_db <- dbConnect(drv,
+                 user="postgres", 
+                 password=pwd,
+                 host="localhost", 
+                 port=5432, 
+                 dbname="proejct3")
+
+ds_skills_analysis_df <- dbGetQuery(skills_db, "select a.id, a.skill, a.count, b.source, b.source_type from skill_information a, source b
+where a.source_id = b.source_id;")
+
+dbDisconnect(skills_db)
+
+ds_skills_analysis_df
+
+```
+
+# analysis
+
+## Analysis 1
+- From JOb posting site indeed, most in demand skills are having "experience", "Machine learning", "Python" and "Data modeling"
+- From job posting site Glassdoor, most in demand skills are again having "experience", "data modeling", and "Analytics"
+- AS it can be seen "experience", "data modeling" are the most mentioned points on job sites
+
+```{r}
+
+analysis1 <- subset(ds_skills_analysis_df, str_trim(source_type) == "Job Posting Site")
+
+analysis1
+
+ggplot(analysis1, aes(x = skill, y =count)) +
+  geom_bar(stat = "identity", width = 0.5, position = position_dodge()) +
+  geom_text(aes(label=count), vjust=-0.3, size = 3, position = position_dodge(width = 1)) +
+  facet_wrap(. ~ source, scales = "free_x") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "frequency", title = "Major skills by source type - Job Posting site")
+
+```
+
+## Analysis 2
+- In Forbes Article, we have five skills listed
+- In udacity article, there are eight skills listed
+- Programming and analysis are considered important in both the articles. These are also  found to be important skills from the jobs sites.
+
+```{r}
+
+analysis2 <- subset(ds_skills_analysis_df, str_trim(source_type) == "Article")
+
+analysis2
+
+ggplot(analysis2, aes(x = skill, y =count, fill = source)) +
+  geom_bar(stat = "identity", width = 0.5, position = position_dodge()) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "frequency", title = "Major skills by source type - Article")
+
+```
+
+> # Conclusion:
+  ### From JOb posting sites "experience" and "data modeling" are the most mentioned points/skills.
+  ### In Articles, "Programming" and "analysis" are considered important.
+
