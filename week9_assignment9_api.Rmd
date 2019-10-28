@@ -1,0 +1,71 @@
+---
+title: "week9_assignment9_api"
+author: "Jayanth0572 and Sarat"
+date: "October 28, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+# Accesing data from NyTimes Article search API
+- We can directly using jsonlite package as the source data is in json format. But I am using httr package to import the data into R and then work off of it using jsonlite package
+- once the data is imported, the page counts were checked
+- Then a dataframe as created and subset of the dataframe was taken with required information
+- Though we have 1025 pages to review, only eight pages were checked for faster code execution and to also avoid connectivty issues
+
+## Notes
+  - In the search optoins I am choosing data science, R and api to narrow results
+  - But we see only 10 rows as the responseto GET function is just from the the page 1. We'll need to loop through the pages so we can get required data.
+  - faced connection issues. Need to set hold time time so as to allow searching through each page.
+
+
+```{r}
+
+library(httr)
+library(dplyr)
+library(jsonlite)
+
+input_url <- "https://api.nytimes.com/svc/search/v2/articlesearch.json?q=data+science R api&fq=Education&api-key=0gqsfAZ8QB1tsCNgmK3hjE6I5JG59fMC&type=article"
+
+# counting number of pages. There a total of 1025 pages
+pagecount_list <- fromJSON(input_url)
+totalpages <- pagecount_list$response$meta$hits
+pagecount_list
+
+# The source has the data in JSON format and I am using GET function from httr package to import the data into R
+import_data <- GET(input_url)
+
+# Converting the data to characters as the extract is in binary form
+import_data <- rawToChar(import_data$content)
+
+# Using fromjson function from jsonlite package to convert json data to dataframe
+# We'll use simplyvector to convert nested lists of a column into dataframe
+article_df <- fromJSON(import_data, simplifyVector = T) %>% 
+  data.frame() %>%
+  select("response.docs.web_url", "response.docs.snippet", "response.docs.lead_paragraph", "response.docs.abstract", "response.docs.print_page", "response.docs.source", "response.docs.pub_date", "response.docs.document_type", "response.docs.news_desk", "response.docs.section_name", "response.docs.type_of_material", "response.docs._id", "response.docs.word_count", "response.docs.uri", "response.docs.subsection_name")
+
+# Though we have 1025 pages to search through,I am using only the next eight pages for faster run and to avoid error due toconnection hold issues.
+for(i in 1:7)
+  {
+  import_data_cont <- GET(paste0(input_url, "&page=", i))
+  import_data_cont <- rawToChar(import_data_cont$content)
+  article_df_cont <- fromJSON(import_data_cont, simplifyVector = T) %>% 
+    data.frame()  %>%
+  select("response.docs.web_url", "response.docs.snippet", "response.docs.lead_paragraph", "response.docs.abstract", "response.docs.print_page", "response.docs.source", "response.docs.pub_date", "response.docs.document_type", "response.docs.news_desk", "response.docs.section_name", "response.docs.type_of_material", "response.docs._id", "response.docs.word_count", "response.docs.uri", "response.docs.subsection_name")
+  article_df <- rbind(article_df,article_df_cont)
+  }
+
+# The final data frame
+article_df
+
+```
