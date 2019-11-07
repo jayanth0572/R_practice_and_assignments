@@ -1,0 +1,58 @@
+---
+title: "Discussion_RecommenderSystems"
+author: "Jayanth0572"
+date: "November 6, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Google News on Android phones
+
+### Scenario design analysis 
+<b>End user perspecitve:</b><br />
+
+- Android mobile phone users are the target users
+- Users would like to read news that they are most interested in with minimum scrolling up/down or searching
+- Android has a dedicated Google news screen which can be seen when swiped towards the left of main screen. The news items are shown based on the users interests.
+
+Couldn't think in organization perspective as everything seems to circle back to end user perspective.
+
+
+### Approach
+For each of the news items we can see on the news screen, there are a few fixed set of options...<br />
+"More, Less, Follow, HidetheStory, Not interested, Don't show storees from this source, and send feed back".
+Also, when the users read a certain story or do a search on some topic, they will be taken into account. 
+The algorithms then use these options and search/view history to determine what stories to show and in what order to get a personalized viewfor the user.
+
+
+### Algorithms
+There was a paper published on title <b>"Google news personalization_ scalable online collaborative filtering"</b> where authors describe the approach for generating personalized recommendations for users of Google News.
+Here is the link to paper.
+https://www2007.org/papers/paper570.pdf
+
+There are three algorithms used to generate recommendations...<br />
+<b>Collaborative filtering using MinHash clustering:</b><br />
+On the highlevel, MinHashing is a probabilistic clustering method that assigns a pair of users to the same cluster with probability proportional to the overlap between the set of items that these users have voted for (clicked-on).
+Formula: S(ui, uj) = |Cui???Cuj|/|Cui???Cuj|
+This formula checks for similarities between users. But this is not scalable as the user count is not manageable. So, there are differnet techniques like LSH and MinHash clustering using MapReduce whichcmoes to the rescue.
+
+<b>Probabilistic Latent Semantic Indexing (PLSI):</b><br />
+Another clustering method. Also called PLSA or Probabilistic Latent Semantic Analysis is a technique used to model information under a probabilistic framework. Latent because the topics are treated as latent or hidden variables.
+
+<b>covisitation counts:</b><br />
+Covisitation is defined as two stories clicked by the same user within a given time interval
+
+Then these recommendations from different algorithms will be combined using a linear model. 
+
+
+### ideas for betterment
+Segmentation: Stories can be grouped by the category.<br />
+Also show stories that do not require subsribtion.
+
+
+
