@@ -1,0 +1,95 @@
+---
+title: "FinalProjrct"
+author: "Jayanth, Sharath and Raghed"
+date: "December 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Importing datasets into R
+ >
+ - GDP                : GDP by country
+ - GDP Percapita      : GDP Percapita by country
+ - Manufacturing GDP  : Manufacturing GDP percentage by country
+ - Agriculture GDP    : Agriculture GDP percentage by country
+ - Service GDP        : Service GDP percentage by country
+ - Industries GDP     : Industries GDP percentage by country
+
+```{r}
+
+library(readxl)
+library(dplyr)
+
+#diable scientific notation, so that actual decimal values are imported instead of exponential factors
+options(scipen = 999)
+
+# Importing GDP (1995-2018) by country dataset into R
+gdp_dataset <- read_excel("GDP.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing GDP percapita (1995-2018) by country dataset into R
+gdp_percapita_dataset <- read_excel("GDP per Capita.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing Manufacturing GDP (1995-2018) percentage by country dataset into R
+gdp_manufacturing_dataset <- read_excel("Manufacturing.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing Agriculture GDP (1995-2018) percentage by country dataset into R
+gdp_agriculture_dataset <- read_excel("Agriculture.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing Service GDP (1995-2018) percentage by country dataset into R
+gdp_service_dataset <- read_excel("Service.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing Industries GDP (1995-2018) percentage by country dataset into R
+gdp_industries_dataset <- read_excel("Industries.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+head(gdp_dataset)
+
+```
+
+
+# Merging data frames
+
+```{r}
+
+library(tidyr)
+library(stringr)
+
+df1 <- gather(gdp_dataset, "year", "GDP", 4:27) %>% select(1, 4, 5)
+df2 <- gather(gdp_percapita_dataset, "year", "GDP Percapita", 4:27) %>% select(1, 4, 5)
+df3 <- gather(gdp_industries_dataset, "year", "Industry Percent of GDP", 4:27) %>% select(1, 4, 5)
+df4 <- gather(gdp_service_dataset, "year", "Services Percent of GDP", 4:27) %>% select(1, 4, 5)
+df5 <- gather(gdp_agriculture_dataset, "year", "Agriculture Percent of GDP", 4:27) %>% select(1, 4, 5)
+df6 <- gather(gdp_manufacturing_dataset, "year", "Manufacturing Percent of GDP", 4:27) %>% select(1, 4, 5)
+df <- merge(df1, df2, all.y = T)
+df <- merge(df, df3, all.y = T)
+df <- merge(df, df4, all.y = T)
+df <- merge(df, df5, all.y = T)
+df <- merge(df, df6, all.y = T)
+
+df$year <- str_extract(df$year, "[:digit:]+")
+
+df
+```
+
+
+```{r}
+library(ggplot2)
+
+ggplot(df, aes(x=year, y=Country.Name, group = 1)) +
+  theme(axis.text.x = element_text(size=10, angle=90))
+ 
+```
