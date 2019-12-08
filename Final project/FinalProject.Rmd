@@ -60,20 +60,22 @@ gdp_industries_dataset <- read_excel("Industries.xls", col_names = TRUE, sheet =
   data.frame(., stringsAsFactors = F) %>%
   select(., 1,2,3,40:63)
 
-head(country_metadata_dataset)
+head(gdp_dataset)
 
 ```
 
 
 # Merging data frames
+GDP and GDP Percapita are in millions
 
 ```{r}
 
 library(tidyr)
 library(stringr)
-
 df1 <- gather(gdp_dataset, "year", "GDP", 4:27) %>% select(1, 4, 5)
+df1$GDP <- df1$GDP/1000000
 df2 <- gather(gdp_percapita_dataset, "year", "GDP Percapita", 4:27) %>% select(1, 4, 5)
+df2$`GDP Percapita` <- df2$`GDP Percapita`/1000000
 df3 <- gather(gdp_industries_dataset, "year", "Industry Percent of GDP", 4:27) %>% select(1, 4, 5)
 df4 <- gather(gdp_service_dataset, "year", "Services Percent of GDP", 4:27) %>% select(1, 4, 5)
 df5 <- gather(gdp_agriculture_dataset, "year", "Agriculture Percent of GDP", 4:27) %>% select(1, 4, 5)
@@ -104,10 +106,11 @@ incomegroup_df <- df %>%
 incomegroup_df
 
 ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
-  geom_point(aes(y = `Services Percent of GDP`)) + 
-  geom_line(aes(y = `Services Percent of GDP`)) +
+  geom_point(aes(y = `GDP`)) + 
+  geom_line(aes(y = `GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
-  theme(axis.text.y = element_text(size=10, angle=90))
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "GDP by income groups in millions")
  
 ```
 
