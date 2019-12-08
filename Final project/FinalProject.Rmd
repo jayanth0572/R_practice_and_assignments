@@ -111,6 +111,40 @@ ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
   labs(title = "GDP by income groups in millions")
- 
+
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `GDP Percapita`)) + 
+  geom_line(aes(y = `GDP Percapita`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "GDP Percapita by income groups in millions")
+
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Industry Percent of GDP`)) + 
+  geom_line(aes(y = `Industry Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Industry Percent of GDP by income groups")
+
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Services Percent of GDP`)) + 
+  geom_line(aes(y = `Services Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Services Percent of GDP by income groups")
+
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Agriculture Percent of GDP`)) + 
+  geom_line(aes(y = `Agriculture Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Agriculture Percent of GDP by income groups")
+
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Manufacturing Percent of GDP`)) + 
+  geom_line(aes(y = `Manufacturing Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Manufacturing Percent of GDP by income groups")
 ```
 
