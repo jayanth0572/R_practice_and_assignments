@@ -26,6 +26,10 @@ library(dplyr)
 #diable scientific notation, so that actual decimal values are imported instead of exponential factors
 options(scipen = 999)
 
+
+# Importing country Metadta dataset into R
+country_metadata_dataset <- read_excel("GDP.xls", col_names = TRUE, sheet = "Metadata - Countries")
+
 # Importing GDP (1995-2018) by country dataset into R
 gdp_dataset <- read_excel("GDP.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
   data.frame(., stringsAsFactors = F) %>%
@@ -56,7 +60,7 @@ gdp_industries_dataset <- read_excel("Industries.xls", col_names = TRUE, sheet =
   data.frame(., stringsAsFactors = F) %>%
   select(., 1,2,3,40:63)
 
-head(gdp_dataset)
+head(country_metadata_dataset)
 
 ```
 
@@ -79,17 +83,31 @@ df <- merge(df, df3, all.y = T)
 df <- merge(df, df4, all.y = T)
 df <- merge(df, df5, all.y = T)
 df <- merge(df, df6, all.y = T)
+df <- merge(country_metadata_dataset, df, by.x = "TableName", by.y = "Country.Name", all.y = T)
 
 df$year <- str_extract(df$year, "[:digit:]+")
 
-df
+head(df)
+
 ```
 
-
+# Analysis by income groups
 ```{r}
 library(ggplot2)
+library(dplyr)
 
-ggplot(df, aes(x=year, y=Country.Name, group = 1)) +
-  theme(axis.text.x = element_text(size=10, angle=90))
+incomegroup_df <- df %>%
+  filter(., is.na(IncomeGroup)) %>%
+  filter(., `Country Code` %in% c("EAR","FCS","HIC","HPC","LDC","LIC","LMC","LMY","LTE","MIC","PRE","PST","UMC")) %>%
+  arrange(TableName, year)
+
+incomegroup_df
+
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Services Percent of GDP`)) + 
+  geom_line(aes(y = `Services Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90))
  
 ```
+
