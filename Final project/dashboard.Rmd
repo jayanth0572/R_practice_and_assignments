@@ -1,0 +1,202 @@
+---
+title: "GDP and Debt dashboard"
+hidden_author: "Jayanth, Sharath and Raghed"
+hidden_date: "December 9, 2019"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    vertical_layout: fill
+---
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+#library(shiny)
+```
+
+Datasets used
+=======================================================================
+
+ - GDP(GDP.xls)                         : GDP by country
+ - GDP Percapita(GDP per Capita.xls)    : GDP Percapita by country
+ - Manufacturing GDP(Manufacturing.xls) : Manufacturing GDP percentage by country
+ - Agriculture GDP(Agriculture.xls)     : Agriculture GDP percentage by country
+ - Service GDP(Service.xls)             : Service GDP percentage by country
+ - Industries GDP(Industries.xls)       : Industries GDP percentage by country
+
+```{r DatasetImport, echo = T}
+
+library(readxl)
+library(dplyr)
+
+#diable scientific notation, so that actual decimal values are imported instead of exponential factors
+options(scipen = 999)
+
+
+# Importing country Metadta dataset into R
+country_metadata_dataset <- read_excel("GDP.xls", col_names = TRUE, sheet = "Metadata - Countries")
+
+# Importing GDP (1995-2018) by country dataset into R
+gdp_dataset <- read_excel("GDP.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing GDP percapita (1995-2018) by country dataset into R
+gdp_percapita_dataset <- read_excel("GDP per Capita.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing Manufacturing GDP (1995-2018) percentage by country dataset into R
+gdp_manufacturing_dataset <- read_excel("Manufacturing.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing Agriculture GDP (1995-2018) percentage by country dataset into R
+gdp_agriculture_dataset <- read_excel("Agriculture.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing Service GDP (1995-2018) percentage by country dataset into R
+gdp_service_dataset <- read_excel("Service.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+# Importing Industries GDP (1995-2018) percentage by country dataset into R
+gdp_industries_dataset <- read_excel("Industries.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
+```
+END
+
+
+Merging data frames
+=======================================================================
+
+ - GDP is in millions
+ - Dataframes are merged to put all the relevant information into single dataset
+
+```{r MergeDF, echo = T}
+
+library(tidyr)
+library(stringr)
+
+df1 <- gather(gdp_dataset, "year", "GDP", 4:27) %>% select(1, 4, 5)
+df1$GDP <- df1$GDP/1000000
+df2 <- gather(gdp_percapita_dataset, "year", "GDP Percapita", 4:27) %>% select(1, 4, 5)
+df3 <- gather(gdp_industries_dataset, "year", "Industry Percent of GDP", 4:27) %>% select(1, 4, 5)
+df4 <- gather(gdp_service_dataset, "year", "Services Percent of GDP", 4:27) %>% select(1, 4, 5)
+df5 <- gather(gdp_agriculture_dataset, "year", "Agriculture Percent of GDP", 4:27) %>% select(1, 4, 5)
+df6 <- gather(gdp_manufacturing_dataset, "year", "Manufacturing Percent of GDP", 4:27) %>% select(1, 4, 5)
+df <- merge(df1, df2, all.y = T)
+df <- merge(df, df3, all.y = T)
+df <- merge(df, df4, all.y = T)
+df <- merge(df, df5, all.y = T)
+df <- merge(df, df6, all.y = T)
+df <- merge(country_metadata_dataset, df, by.x = "TableName", by.y = "Country.Name", all.y = T)
+
+# removing characters from the year and converting the type to numeric
+df$year <- str_extract(df$year, "[:digit:]+") %>%
+  as.numeric(df$year)
+
+# final dataframe
+df[2,]
+```
+END
+
+
+Income groups Dataframe
+=======================================================================
+
+```{r IncomeGroupsDF, echo = T}
+library(ggplot2)
+library(dplyr)
+
+incomegroup_df <- df %>%
+  filter(., is.na(IncomeGroup)) %>%
+  filter(., `Country Code` %in% c("EAR","FCS","HIC","HPC","LDC","LIC","LMC","LMY","LTE","MIC","PRE","PST","UMC")) %>%
+  arrange(TableName, year)
+
+head(incomegroup_df)
+```
+END
+
+
+Income groups Charts
+=======================================================================
+
+Column {.tabset}
+-------------------------------------
+
+### GDP
+
+```{r echo = F}
+
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `GDP`)) + 
+  geom_line(aes(y = `GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "GDP by income groups in millions")
+```
+
+### GDP Percapita
+
+```{r echo = F}
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `GDP Percapita`)) + 
+  geom_line(aes(y = `GDP Percapita`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "GDP Percapita by income groups")
+```
+
+```{r}
+knitr::kable(incomegroup_df[,c("TableName","year", "GDP Percapita")])
+```
+
+### Industry Percent of GDP
+
+```{r echo = F}
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Industry Percent of GDP`)) + 
+  geom_line(aes(y = `Industry Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Industry Percent of GDP by income groups")
+```
+
+### Services Percent of GDP
+
+```{r echo = F}
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Services Percent of GDP`)) + 
+  geom_line(aes(y = `Services Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Services Percent of GDP by income groups")
+```
+
+### Agriculture Percent of GDP
+
+```{r echo = F}
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Agriculture Percent of GDP`)) + 
+  geom_line(aes(y = `Agriculture Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Agriculture Percent of GDP by income groups")
+```
+
+### Manufacturing Percent of GDP
+
+```{r echo = F}
+ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Manufacturing Percent of GDP`)) + 
+  geom_line(aes(y = `Manufacturing Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Manufacturing Percent of GDP by income groups")
+```
+END
