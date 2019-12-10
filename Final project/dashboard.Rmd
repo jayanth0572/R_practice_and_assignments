@@ -10,9 +10,14 @@ output:
 ---
 
 
-```{r setup, include=FALSE}
+```{r global, include=FALSE}
 library(flexdashboard)
-#library(shiny)
+library(DT)
+library(ggplot2)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(stringr)
 ```
 
 Datasets used
@@ -26,9 +31,6 @@ Datasets used
  - Industries GDP(Industries.xls)       : Industries GDP percentage by country
 
 ```{r DatasetImport, echo = T}
-
-library(readxl)
-library(dplyr)
 
 #diable scientific notation, so that actual decimal values are imported instead of exponential factors
 options(scipen = 999)
@@ -77,10 +79,11 @@ Merging data frames
  - GDP is in millions
  - Dataframes are merged to put all the relevant information into single dataset
 
-```{r MergeDF, echo = T}
+Column {.tabset}
+------------------------------------
+### RChunk-MergeDF
 
-library(tidyr)
-library(stringr)
+```{r MergeDF, echo = T}
 
 df1 <- gather(gdp_dataset, "year", "GDP", 4:27) %>% select(1, 4, 5)
 df1$GDP <- df1$GDP/1000000
@@ -99,41 +102,62 @@ df <- merge(country_metadata_dataset, df, by.x = "TableName", by.y = "Country.Na
 # removing characters from the year and converting the type to numeric
 df$year <- str_extract(df$year, "[:digit:]+") %>%
   as.numeric(df$year)
-
-# final dataframe
-df[2,]
 ```
-END
+
+### RChunk-DF
+```{r}
+DT::datatable(df, options = list(pageLength = 5))
+```
+
 
 
 Income groups Dataframe
 =======================================================================
-
+ 
+ - GDP is in millions
+ 
+Column {.tabset}
+------------------------------------
+### RChunk-IncomeGroupsDF
 ```{r IncomeGroupsDF, echo = T}
-library(ggplot2)
-library(dplyr)
-
 incomegroup_df <- df %>%
   filter(., is.na(IncomeGroup)) %>%
   filter(., `Country Code` %in% c("EAR","FCS","HIC","HPC","LDC","LIC","LMC","LMY","LTE","MIC","PRE","PST","UMC")) %>%
   arrange(TableName, year)
-
-head(incomegroup_df)
 ```
-END
+
+### RChunk-DF
+```{r}
+DT::datatable(incomegroup_df, options = list(pageLength = 5))
+```
+
 
 
 Income groups Charts
 =======================================================================
+
+column
+-------------------------------------
+### Number of Incomegroups
+```{r}
+NIG <- length(unique(incomegroup_df[["TableName"]]))
+
+valueBox(NIG, color = "primary")
+```
+
+### 2
+```{r}
+valueBox("", color = "info")
+```
 
 Column {.tabset}
 -------------------------------------
 
 ### GDP
 
-```{r echo = F}
+```{r fig.width=10, echo = F}
 
-ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+ggplot(incomegroup_df, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `GDP`)) + 
   geom_line(aes(y = `GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
@@ -141,10 +165,11 @@ ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
   labs(title = "GDP by income groups in millions")
 ```
 
+
 ### GDP Percapita
 
-```{r echo = F}
-ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+```{r fig.width=10, echo = F}
+ggplot(incomegroup_df, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `GDP Percapita`)) + 
   geom_line(aes(y = `GDP Percapita`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
@@ -152,14 +177,10 @@ ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
   labs(title = "GDP Percapita by income groups")
 ```
 
-```{r}
-knitr::kable(incomegroup_df[,c("TableName","year", "GDP Percapita")])
-```
-
 ### Industry Percent of GDP
 
-```{r echo = F}
-ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+```{r fig.width=10, echo = F}
+ggplot(incomegroup_df, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Industry Percent of GDP`)) + 
   geom_line(aes(y = `Industry Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
@@ -169,8 +190,8 @@ ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
 
 ### Services Percent of GDP
 
-```{r echo = F}
-ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+```{r fig.width=10, echo = F}
+ggplot(incomegroup_df, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Services Percent of GDP`)) + 
   geom_line(aes(y = `Services Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
@@ -180,7 +201,7 @@ ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
 
 ### Agriculture Percent of GDP
 
-```{r echo = F}
+```{r fig.width=10, echo = F}
 ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
   geom_point(aes(y = `Agriculture Percent of GDP`)) + 
   geom_line(aes(y = `Agriculture Percent of GDP`)) +
@@ -191,12 +212,11 @@ ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
 
 ### Manufacturing Percent of GDP
 
-```{r echo = F}
-ggplot(incomegroup_df, aes(x=year, colour=TableName, group = TableName)) +
+```{r fig.width=10, echo = F}
+ggplot(incomegroup_df, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Manufacturing Percent of GDP`)) + 
   geom_line(aes(y = `Manufacturing Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
   labs(title = "Manufacturing Percent of GDP by income groups")
 ```
-END
