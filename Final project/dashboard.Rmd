@@ -20,7 +20,7 @@ library(tidyr)
 library(stringr)
 ```
 
-Datasets used
+Input Datasets and import {.hidden}
 =======================================================================
 
  - GDP(GDP.xls)                         : GDP by country
@@ -30,7 +30,7 @@ Datasets used
  - Service GDP(Service.xls)             : Service GDP percentage by country
  - Industries GDP(Industries.xls)       : Industries GDP percentage by country
 
-```{r DatasetImport, echo = T}
+```{r DatasetImport, echo = F}
 
 #diable scientific notation, so that actual decimal values are imported instead of exponential factors
 options(scipen = 999)
@@ -69,21 +69,23 @@ gdp_industries_dataset <- read_excel("Industries.xls", col_names = TRUE, sheet =
   data.frame(., stringsAsFactors = F) %>%
   select(., 1,2,3,40:63)
 
+# Importing Ores_Metals_Minerals GDP (1995-2018) percentage by country dataset into R
+gdp_ores_metals_minerals_dataset <- read_excel("Ores_Metals_Minerals.xls", col_names = TRUE, sheet = "Data", skip = 3) %>%
+  data.frame(., stringsAsFactors = F) %>%
+  select(., 1,2,3,40:63)
+
 ```
-END
 
 
-Merging data frames
+Input datasets merge into single Dataframe {.hidden}
 =======================================================================
 
  - GDP is in millions
- - Dataframes are merged to put all the relevant information into single dataset
+ - Input datasets are merged to a single dataframe with all the relevant information
 
-Column {.tabset}
-------------------------------------
-### RChunk-MergeDF
+### MergeDF
 
-```{r MergeDF, echo = T}
+```{r MergeDF, echo = F}
 
 df1 <- gather(gdp_dataset, "year", "GDP", 4:27) %>% select(1, 4, 5)
 df1$GDP <- df1$GDP/1000000
@@ -92,11 +94,13 @@ df3 <- gather(gdp_industries_dataset, "year", "Industry Percent of GDP", 4:27) %
 df4 <- gather(gdp_service_dataset, "year", "Services Percent of GDP", 4:27) %>% select(1, 4, 5)
 df5 <- gather(gdp_agriculture_dataset, "year", "Agriculture Percent of GDP", 4:27) %>% select(1, 4, 5)
 df6 <- gather(gdp_manufacturing_dataset, "year", "Manufacturing Percent of GDP", 4:27) %>% select(1, 4, 5)
+df7 <- gather(gdp_ores_metals_minerals_dataset, "year", "Ores_Metals_Minerals Percent of GDP", 4:27) %>% select(1, 4, 5)
 df <- merge(df1, df2, all.y = T)
 df <- merge(df, df3, all.y = T)
 df <- merge(df, df4, all.y = T)
 df <- merge(df, df5, all.y = T)
 df <- merge(df, df6, all.y = T)
+df <- merge(df, df7, all.y = T)
 df <- merge(country_metadata_dataset, df, by.x = "TableName", by.y = "Country.Name", all.y = T)
 
 # removing characters from the year and converting the type to numeric
@@ -104,33 +108,67 @@ df$year <- str_extract(df$year, "[:digit:]+") %>%
   as.numeric(df$year)
 ```
 
-### RChunk-DF
-```{r}
-DT::datatable(df, options = list(pageLength = 5))
-```
 
 
-
-Income groups Dataframe
+Income groups Dataframe {.hidden}
 =======================================================================
  
  - GDP is in millions
  
-Column {.tabset}
-------------------------------------
-### RChunk-IncomeGroupsDF
-```{r IncomeGroupsDF, echo = T}
+### IncomeGroupsDF
+```{r IncomeGroupsDF, echo = F}
 incomegroup_df <- df %>%
   filter(., is.na(IncomeGroup)) %>%
   filter(., `Country Code` %in% c("EAR","FCS","HIC","HPC","LDC","LIC","LMC","LMY","LTE","MIC","PRE","PST","UMC")) %>%
   arrange(TableName, year)
 ```
 
-### RChunk-DF
+
+Economy by Region Dataframe {.hidden}
+=======================================================================
+ 
+ - GDP is in millions
+ - Economy from major sectors(Services, Agriculture and Manufacturing) by region
+
+### RegionsDF
+```{r RegionsDF, echo = F}
+economy_by_region_df <- df %>%
+  filter(., is.na(IncomeGroup)) %>%
+  filter(., TableName %in% c("East Asia & Pacific","Europe & Central Asia","Latin America & Caribbean","Middle East & North Africa","North America","South Asia","Sub-Saharan Africa")) %>%
+  select(1,3,4,6:8,10:12) %>%
+  arrange(TableName, year)
+
+```
+
+
+Data Frames
+=======================================================================
+
+Column {.tabset}
+------------------------------------
+### initial dataframe
+ - GDP is in millions
+ - Input datasets are merged to a single dataframe with all the relevant information
+
+```{r}
+DT::datatable(df, options = list(pageLength = 5))
+```
+
+### incomegroup dataframe
+ - GDP is in millions
+ 
 ```{r}
 DT::datatable(incomegroup_df, options = list(pageLength = 5))
 ```
 
+### economy by region dataframe
+
+ - GDP is in millions
+ - Economy from major sectors(Services, Agriculture and Manufacturing) by region
+
+```{r}
+DT::datatable(economy_by_region_df, options = list(pageLength = 5))
+```
 
 
 Income groups Charts
@@ -220,3 +258,104 @@ ggplot(incomegroup_df, aes(x=factor(year), colour=TableName, group = TableName))
   theme(axis.text.y = element_text(size=10, angle=90)) +
   labs(title = "Manufacturing Percent of GDP by income groups")
 ```
+
+### Ores_Metals_Minerals Percent of GDP
+
+```{r fig.width=10, echo = F}
+ggplot(incomegroup_df, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Ores_Metals_Minerals Percent of GDP`)) + 
+  geom_line(aes(y = `Ores_Metals_Minerals Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Ores_Metals_Minerals Percent of GDP by income groups")
+```
+
+
+Economy by region Charts
+=======================================================================
+
+column
+-------------------------------------
+### Number of Regions
+```{r}
+NIG <- length(unique(economy_by_region_df[["TableName"]]))
+
+valueBox(NIG, color = "primary")
+```
+
+### Service based economy
+```{r}
+valueBox("North America", color = "info")
+```
+
+### Manufacturing based economy
+```{r}
+valueBox("East Asia and Pacific", color = "info")
+```
+
+### Agriculture based economy
+```{r}
+valueBox("South Asia", color = "info")
+```
+
+Column {.tabset}
+-------------------------------------
+
+### GDP
+
+```{r fig.width=10, echo = F}
+
+ggplot(economy_by_region_df, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `GDP`)) + 
+  geom_line(aes(y = `GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "GDP by Region in millions")
+```
+
+
+### GDP Percapita
+
+```{r fig.width=10, echo = F}
+ggplot(economy_by_region_df, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `GDP Percapita`)) + 
+  geom_line(aes(y = `GDP Percapita`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "GDP Percapita by Region")
+```
+
+### Services Percent of GDP
+
+```{r fig.width=10, echo = F}
+ggplot(economy_by_region_df, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Services Percent of GDP`)) + 
+  geom_line(aes(y = `Services Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Services Percent of GDP by Region")
+```
+
+### Agriculture Percent of GDP
+
+```{r fig.width=10, echo = F}
+ggplot(economy_by_region_df, aes(x=year, colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Agriculture Percent of GDP`)) + 
+  geom_line(aes(y = `Agriculture Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Agriculture Percent of GDP by Region")
+```
+
+### Manufacturing Percent of GDP
+
+```{r fig.width=10, echo = F}
+ggplot(economy_by_region_df, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Manufacturing Percent of GDP`)) + 
+  geom_line(aes(y = `Manufacturing Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Manufacturing Percent of GDP by Region")
+```
+
+
