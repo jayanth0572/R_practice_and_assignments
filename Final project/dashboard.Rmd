@@ -1,5 +1,5 @@
 ---
-title: "GDP and Debt dashboard"
+title: "GDP dashboard"
 hidden_author: "Jayanth, Sharath and Raghed"
 hidden_date: "December 9, 2019"
 output: 
@@ -410,28 +410,41 @@ knowledge_traditinoal_SD_1to25percent_dF <- knowledge_traditinoal_dF %>%
   filter(.,`Country SD GDP in percent` <= 25) %>%
   arrange(TableName, year)
 
-knowledge_traditinoal_SD_25to50percent_dF <- knowledge_traditinoal_dF %>%
-  filter(.,`Country SD GDP in percent` > 25 & `Country SD GDP in percent` <=50) %>%
+knowledge_traditinoal_SD_25to35percent_dF <- knowledge_traditinoal_dF %>%
+  filter(.,`Country SD GDP in percent` > 25 & `Country SD GDP in percent` <=35) %>%
   arrange(TableName, year)
 
-knowledge_traditinoal_SD_50to75percent_dF <- knowledge_traditinoal_dF %>%
-  filter(.,`Country SD GDP in percent` > 50 & `Country SD GDP in percent` <=75) %>%
+knowledge_traditinoal_SD_35to45percent_dF <- knowledge_traditinoal_dF %>%
+  filter(.,`Country SD GDP in percent` > 35 & `Country SD GDP in percent` <=45) %>%
+  arrange(TableName, year)
+
+knowledge_traditinoal_SD_45to55percent_dF <- knowledge_traditinoal_dF %>%
+  filter(.,`Country SD GDP in percent` > 45 & `Country SD GDP in percent` <=55) %>%
+  arrange(TableName, year)
+
+knowledge_traditinoal_SD_55to65percent_dF <- knowledge_traditinoal_dF %>%
+  filter(.,`Country SD GDP in percent` > 55 & `Country SD GDP in percent` <=65) %>%
+  arrange(TableName, year)
+
+knowledge_traditinoal_SD_65to75percent_dF <- knowledge_traditinoal_dF %>%
+  filter(.,`Country SD GDP in percent` > 65 & `Country SD GDP in percent` <=75) %>%
   arrange(TableName, year)
 
 knowledge_traditinoal_SD_75to100percent_dF <- knowledge_traditinoal_dF %>%
   filter(.,`Country SD GDP in percent` > 75) %>%
   arrange(TableName, year)
 
-knowledge_traditinoal_SD_1to25percent_dF
+SD_Groups <- c("knowledge_traditinoal_SD_1to25percent_dF","knowledge_traditinoal_SD_25to35percent_dF","knowledge_traditinoal_SD_35to45percent_dF","knowledge_traditinoal_SD_45to55percent_dF","knowledge_traditinoal_SD_55to65percent_dF","knowledge_traditinoal_SD_65to75percent_dF","knowledge_traditinoal_SD_75to100percent_dF")
+
 ```
 
 column
 -------------------------------------
-### Number of Incomegroups
+### Number of SD percent groups
 ```{r}
-NIG <- length(unique(incomegroup_df[["TableName"]]))
+NSDG <- length(SD_Groups)
 
-valueBox(NIG, color = "primary")
+valueBox(NSDG, color = "info")
 ```
 
 ### Recessions
@@ -439,97 +452,153 @@ valueBox(NIG, color = "primary")
 valueBox("2001, 2008-2009", color = "info")
 ```
 
-Column {.tabset}
+column {.tabset}
 -------------------------------------
 
 ### SD upto 25 percent
 
-```{r fig.width=10, echo = F}
+```{r fig.width=6, fig.height=5, echo = F}
 
 ggplot(knowledge_traditinoal_SD_1to25percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Knowledge based Percent of GDP`)) + 
   geom_line(aes(y = `Knowledge based Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
-  labs(title = "Knowledge based Percent of GDP by income groups in millions")
-```
-
-```{r fig.width=10, echo = F}
+  labs(title = "Knowledge based Percent of GDP by income groups in millions") +
+  theme(legend.position = "bottom", legend.text = element_text(size=8), legend.margin = margin(t = 0, unit='cm'))
 
 ggplot(knowledge_traditinoal_SD_1to25percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Traditinoal based Percent of GDP`)) + 
   geom_line(aes(y = `Traditinoal based Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
-  labs(title = "Traditional based Percent of GDP by income groups in millions")
+  labs(title = "Traditional based Percent of GDP by income groups in millions") +
+  theme(legend.position = "none")
 ```
 
 
-### SD >25 and upto 50 percent
+### SD >25 and upto 35 percent
 
-```{r fig.width=15, echo = F}
+```{r fig.width=13, fig.height=5, echo = F}
 
-ggplot(knowledge_traditinoal_SD_25to50percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+ggplot(knowledge_traditinoal_SD_25to35percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Knowledge based Percent of GDP`)) + 
   geom_line(aes(y = `Knowledge based Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
-  labs(title = "Knowledge based Percent of GDP by income groups in millions")
-```
+  labs(title = "Knowledge based Percent of GDP by income groups in millions") +
+  theme(legend.text = element_text(size=6), legend.margin = margin(t = 0, unit='cm'))
 
-
-```{r fig.width=15, echo = F}
-
-ggplot(knowledge_traditinoal_SD_25to50percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+ggplot(knowledge_traditinoal_SD_25to35percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Traditinoal based Percent of GDP`)) + 
   geom_line(aes(y = `Traditinoal based Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
-  labs(title = "Traditional based Percent of GDP by income groups in millions")
+  labs(title = "Traditional based Percent of GDP by income groups in millions") +
+  theme(legend.position = "none")
 ```
 
-### SD >50 upto 75 percent
+### SD >35 upto 45 percent
 
-```{r fig.width=15, echo = F}
+```{r fig.width=13, fig.height=5, echo = F}
 
-ggplot(knowledge_traditinoal_SD_50to75percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+ggplot(knowledge_traditinoal_SD_35to45percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Knowledge based Percent of GDP`)) + 
   geom_line(aes(y = `Knowledge based Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
-  labs(title = "Knowledge based Percent of GDP by income groups in millions")
-```
+  labs(title = "Knowledge based Percent of GDP by income groups in millions") +
+  theme(legend.text = element_text(size=6), legend.margin = margin(t = 0, unit='cm'))
 
-
-```{r fig.width=15, echo = F}
-
-ggplot(knowledge_traditinoal_SD_50to75percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+ggplot(knowledge_traditinoal_SD_35to45percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Traditinoal based Percent of GDP`)) + 
   geom_line(aes(y = `Traditinoal based Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
-  labs(title = "Traditional based Percent of GDP by income groups in millions")
+  labs(title = "Traditional based Percent of GDP by income groups in millions") +
+  theme(legend.position = "none")
+```
+
+### SD >45 upto 55 percent
+
+```{r fig.width=13, fig.height=5, echo = F}
+
+ggplot(knowledge_traditinoal_SD_45to55percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Knowledge based Percent of GDP`)) + 
+  geom_line(aes(y = `Knowledge based Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Knowledge based Percent of GDP by income groups in millions") +
+  theme(legend.text = element_text(size=6), legend.margin = margin(t = 0, unit='cm'))
+
+ggplot(knowledge_traditinoal_SD_45to55percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Traditinoal based Percent of GDP`)) + 
+  geom_line(aes(y = `Traditinoal based Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Traditional based Percent of GDP by income groups in millions") +
+  theme(legend.position = "none")
+```
+
+### SD >55 upto 65 percent
+
+```{r fig.width=13, fig.height=5, echo = F}
+
+ggplot(knowledge_traditinoal_SD_55to65percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Knowledge based Percent of GDP`)) + 
+  geom_line(aes(y = `Knowledge based Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Knowledge based Percent of GDP by income groups in millions") +
+  theme(legend.text = element_text(size=6), legend.margin = margin(t = 0, unit='cm'))
+
+ggplot(knowledge_traditinoal_SD_55to65percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Traditinoal based Percent of GDP`)) + 
+  geom_line(aes(y = `Traditinoal based Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Traditional based Percent of GDP by income groups in millions") +
+  theme(legend.position = "none")
+```
+
+### SD >65 upto 75 percent
+
+```{r fig.width=13, fig.height=5, echo = F}
+
+ggplot(knowledge_traditinoal_SD_65to75percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Knowledge based Percent of GDP`)) + 
+  geom_line(aes(y = `Knowledge based Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Knowledge based Percent of GDP by income groups in millions") +
+  theme(legend.text = element_text(size=6), legend.margin = margin(t = 0, unit='cm'))
+
+ggplot(knowledge_traditinoal_SD_65to75percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
+  geom_point(aes(y = `Traditinoal based Percent of GDP`)) + 
+  geom_line(aes(y = `Traditinoal based Percent of GDP`)) +
+  theme(axis.text.x = element_text(size=10, angle=90)) +
+  theme(axis.text.y = element_text(size=10, angle=90)) +
+  labs(title = "Traditional based Percent of GDP by income groups in millions") +
+  theme(legend.position = "none")
 ```
 
 ### SD >75 percent
 
-```{r fig.width=10, echo = F}
+```{r fig.width=6, fig.height=5, echo = F}
 
 ggplot(knowledge_traditinoal_SD_75to100percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Knowledge based Percent of GDP`)) + 
   geom_line(aes(y = `Knowledge based Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
-  labs(title = "Knowledge based Percent of GDP by income groups in millions")
-```
-
-
-```{r fig.width=10, echo = F}
+  labs(title = "Knowledge based Percent of GDP by income groups in millions") +
+  theme(legend.position = "bottom", legend.text = element_text(size=8), legend.margin = margin(t = 0, unit='cm'))
 
 ggplot(knowledge_traditinoal_SD_75to100percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Traditinoal based Percent of GDP`)) + 
   geom_line(aes(y = `Traditinoal based Percent of GDP`)) +
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
-  labs(title = "Traditional based Percent of GDP by income groups in millions")
+  labs(title = "Traditional based Percent of GDP by income groups in millions") +
+  theme(legend.position = "none")
 ```
