@@ -502,7 +502,7 @@ ggplot(knowledge_traditinoal_SD_1to25percent_dF, aes(x=factor(year), colour=Tabl
   theme(axis.text.x = element_text(size=10, angle=90)) +
   theme(axis.text.y = element_text(size=10, angle=90)) +
   labs(title = "Knowledge based Percent of GDP by income groups in millions") +
-  theme(legend.position = "bottom", legend.text = element_text(size=8), legend.margin = margin(t = 0, unit='cm'))
+  theme(legend.position = "bottom", legend.text = element_text(size=6), legend.margin = margin(t = 0, unit='cm'))
 
 ggplot(knowledge_traditinoal_SD_1to25percent_dF, aes(x=factor(year), colour=TableName, group = TableName)) +
   geom_point(aes(y = `Traditinoal based Percent of GDP`)) + 
