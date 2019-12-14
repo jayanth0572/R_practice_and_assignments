@@ -235,10 +235,6 @@ NIG <- length(unique(incomegroup_df[["TableName"]]))
 valueBox(NIG, color = "primary")
 ```
 
-### 2
-```{r}
-valueBox("", color = "info")
-```
 
 Column {.tabset}
 -------------------------------------
