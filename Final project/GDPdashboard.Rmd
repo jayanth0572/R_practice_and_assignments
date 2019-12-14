@@ -29,6 +29,7 @@ Input Datasets and import {.hidden}
  - Agriculture GDP(Agriculture.xls)     : Agriculture GDP percentage by country
  - Service GDP(Service.xls)             : Service GDP percentage by country
  - Industries GDP(Industries.xls)       : Industries GDP percentage by country
+ - Ores_Metals_Minerals GDP(Ores_Metals_Minerals.xls)       : Ores_Metals_Minerals GDP percentage by country
 
 ```{r DatasetImport, echo = F}
 
